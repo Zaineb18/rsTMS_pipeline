@@ -23,11 +23,11 @@ for subj in subjects:
             if i==1: 
                 title = "mean cleaned bold - MNI space: + 30"
             coords=(6,16,-10)
-            disp = plotting.plot_img(mean_func,cut_coords=coords,title=title,cmap="gray")
-            disp.add_contours(nib.load(MASK_PATH[i]))
-            disp.add_markers([coords], marker_color='red', marker_size=30)
-            disp.savefig(output_file)  # Save the figure
-            plotting.show()
+            #disp = plotting.plot_img(mean_func,cut_coords=coords,title=title,cmap="gray")
+            #disp.add_contours(nib.load(MASK_PATH[i]))
+            #disp.add_markers([coords], marker_color='red', marker_size=30)
+            #disp.savefig(output_file)  # Save the figure
+            #plotting.show()
             
             for n_vols in time_series_lengths:
                 clean_func = index_img(clean_func_orig, slice(0, n_vols))
@@ -38,25 +38,25 @@ for subj in subjects:
                 
                 roi_data, roi_img=dlpfc_masking(clean_func,MASK_PATH[i],seeds_dlpfc = [(-36,39,43), (-44,40,29), (-41,16,54)])
                 output_file = '/home/zamor/Documents/rTMSDepressionPilotes_DomenechAmor_2025/rsTMS_pipeline/figures/fmriprep/'+f'subj-{subj}_ses-{ses}_run-{i+1}_nvols-{n_vols}_roi.png'
-                disp_roi(roi_img, mean_func,output_file,title="DLPFC ROI (summed seeds)",coords=(-44,40,29)) 
+                #disp_roi(roi_img, mean_func,output_file,title="DLPFC ROI (summed seeds)",coords=(-44,40,29)) 
 
                 print('Over the DLPFC ROI')
                 masked_correlation_img, min_voxel_idx, min_z_value, min_mni_coord = min_target_roi(correlation_img, roi_img)
                 output_file = '/home/zamor/Documents/rTMSDepressionPilotes_DomenechAmor_2025/rsTMS_pipeline/figures/fmriprep/'+f'subj-{subj}_ses-{ses}_run-{i+1}_nvols-{n_vols}_seed_based_fc_bm.png'
-                disp_connectivity(masked_correlation_img, roi_img, output_file, title="Seed-based SGC functional connectivity over brain mask", coords=min_mni_coord)
-                project_on_surf(masked_correlation_img, hemi='left',threshold=0.0, title="Seed-based SGC functional connectivity over brain mask",
-                output_file = '/home/zamor/Documents/rTMSDepressionPilotes_DomenechAmor_2025/rsTMS_pipeline/figures/fmriprep/'+f'Msubj-{subj}_ses-{ses}_run-{i+1}_nvols-{n_vols}_seed_based_fc_bm_LeftHemiProjection',
-                mni_coord = list(min_mni_coord))
+                #disp_connectivity(masked_correlation_img, roi_img, output_file, title="Seed-based SGC functional connectivity over brain mask", coords=min_mni_coord)
+                #project_on_surf(masked_correlation_img, hemi='left',threshold=0.0, title="Seed-based SGC functional connectivity over brain mask",
+                #output_file = '/home/zamor/Documents/rTMSDepressionPilotes_DomenechAmor_2025/rsTMS_pipeline/figures/fmriprep/'+f'Msubj-{subj}_ses-{ses}_run-{i+1}_nvols-{n_vols}_seed_based_fc_bm_LeftHemiProjection',
+                #mni_coord = list(min_mni_coord))
 
                 del(masked_correlation_img, min_voxel_idx, min_z_value, min_mni_coord)
                 
                 print('Over the DLPFC ROI  and GM')
                 final_projected_img, min_voxel_idx, min_z_value, min_mni_coord = min_target_gm(correlation_img, roi_img,GM_PATH[0])
                 output_file = '/home/zamor/Documents/rTMSDepressionPilotes_DomenechAmor_2025/rsTMS_pipeline/figures/fmriprep/'+f'subj-{subj}_ses-{ses}_run-{i+1}_nvols-{n_vols}_seed_based_fc_gm.png'
-                disp_connectivity(final_projected_img, roi_img, output_file, title="Seed-based SGC functional connectivity over brain mask and GM", coords=min_mni_coord)
-                project_on_surf(final_projected_img, hemi='left',threshold=0.0, title="Seed-based SGC functional connectivity over brain mask and GM",
-                output_file = '/home/zamor/Documents/rTMSDepressionPilotes_DomenechAmor_2025/rsTMS_pipeline/figures/fmriprep/'+f'Msubj-{subj}_ses-{ses}_run-{i+1}_nvols-{n_vols}_seed_based_fc_gm_LeftHemiProjection',
-                mni_coord = list(min_mni_coord))
+                #disp_connectivity(final_projected_img, roi_img, output_file, title="Seed-based SGC functional connectivity over brain mask and GM", coords=min_mni_coord)
+                #project_on_surf(final_projected_img, hemi='left',threshold=0.0, title="Seed-based SGC functional connectivity over brain mask and GM",
+                #output_file = '/home/zamor/Documents/rTMSDepressionPilotes_DomenechAmor_2025/rsTMS_pipeline/figures/fmriprep/'+f'Msubj-{subj}_ses-{ses}_run-{i+1}_nvols-{n_vols}_seed_based_fc_gm_LeftHemiProjection',
+                #mni_coord = list(min_mni_coord))
 
                 del(final_projected_img, min_voxel_idx, min_z_value, min_mni_coord)
                 del(clean_func, nscans,)
