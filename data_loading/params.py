@@ -2,9 +2,9 @@ import os
 import glob 
 import numpy as np
 
-DATA_DIR = "/home/zamor/Documents/rTMSDepressionPilotes_DomenechAmor_2025/Data"
+DATA_DIR = "/home/zamor/Documents/MainStim"
 space = "MNI152NLin2009cAsym"
-subjects = ["P3"]
+subjects = [8]
 sessions = [1]
 RAW_PATH = os.path.join(DATA_DIR, 'rawdata')
 FMRIPREP_PATH =os.path.join(DATA_DIR, 'derivatives', 'fmriprep')
