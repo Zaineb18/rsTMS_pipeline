@@ -1,12 +1,49 @@
 from rsTMS_pipeline.data_loading.params import *
 from rsTMS_pipeline.data_loading.loading_utils import *
 from rsTMS_pipeline.preproc.preproc_utils import *
-
 import glob
 import nibabel as nib
 from nilearn.image import mean_img,load_img, index_img
 import os
 import shutil
+
+# ==========================
+# Trimming Functional and Fieldmap NIfTI Data
+#
+# Author: Zaineb Amor
+#
+# This section handles the following steps for each subject and session:
+#
+# 1. **Load Raw Data**
+#    - Functional (BOLD) and fieldmap (FMAP) files are loaded using the `load_rawdata` utility.
+#    - Files are sorted by run for consistent ordering.
+#
+# 2. **Trim Functional (BOLD) Data**
+#    - For each BOLD file:
+#        * Load the NIfTI image.
+#        * Remove the first 10 volumes to discard potential scanner artifacts (`index_img(img, slice(10, None))`).
+#        * Create a new file path replacing 'acq-full' with 'acq-trimmed'.
+#        * Copy and rename the associated JSON file to match the trimmed NIfTI.
+#        * Apply `add_ignore_suffix` to the original JSON file (marks it as ignored in further processing).
+#        * Save the trimmed NIfTI image to the new path.
+#        * Print status messages for tracking progress.
+#
+# 3. **Trim Fieldmap (FMAP) Data**
+#    - For each FMAP file:
+#        * Load the NIfTI image.
+#        * Remove the first 10 volumes.
+#        * Create a new file path replacing 'acq-full' with 'acq-trimmed'.
+#        * Copy and rename the associated JSON file to match the trimmed NIfTI.
+#        * Apply `add_ignore_suffix` to the original JSON file.
+#        * Compute the mean image across the trimmed volumes.
+#        * Save the averaged, trimmed FMAP image to the new path.
+#        * Print status messages for tracking progress.
+#
+# Notes:
+#    - Trimming the first 10 volumes helps remove initial scanner instability artifacts.
+#    - JSON files are copied and renamed to maintain BIDS compliance with the new trimmed data.
+#    - File naming follows BIDS conventions (e.g., 'acq-full' → 'acq-trimmed').
+# ==========================
 
 for subj in subjects: 
     for ses in sessions: 

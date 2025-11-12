@@ -1,10 +1,36 @@
 from rsTMS_pipeline.data_loading.params import *
 from rsTMS_pipeline.data_loading.loading_utils import *
 from rsTMS_pipeline.preproc.preproc_utils import *
-
 import glob
 import os
-import shutil
+
+# ==========================
+# Extract and Save Affine Transforms from fMRIPREP H5 Files
+#
+# Authors: Zaineb Amor, Guillaume Goudriet
+#
+# For each subject and session:
+#   - Locate the H5 file that stores the transformation from MNI space to the subject's T1w anatomical space.
+#   - Open the H5 file using h5py and extract:
+#       * TransformParameters: contains the rotation matrix and translation vector.
+#       * TransformFixedParameters: contains the center of rotation.
+#   - Reshape the first 9 parameters into a 3x3 rotation matrix.
+#   - Extract the translation vector (parameters 10-12) and the center.
+#   - Initialize a MatrixOffsetTransformBase object with the matrix, translation, and center.
+#   - Compute the offset and generate the full affine transformation matrix.
+#   - Print all intermediate results for verification:
+#       * Rotation matrix
+#       * Translation vector
+#       * Center
+#       * Offset
+#       * Affine matrix
+#   - Check if the output folder exists in TRANSFORM_PATH; if not, create it.
+#   - Save the affine matrix as a .txt file (converted from .h5) for downstream use.
+#
+# Note:
+#   - This step allows the affine transform from template (MNI) to individual anatomical space to be exported in a standard format.
+#   - The saved affine matrices can be used for aligning TMS targets or other ROI transformations.
+# ==========================
 
 for subj in subjects:
     for ses in sessions: 

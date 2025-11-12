@@ -1,7 +1,24 @@
 from rsTMS_pipeline.data_loading.params import *
-from nilearn import image, plotting
+from nilearn import image
 from nilearn.interfaces.fmriprep import load_confounds
 import os
+
+# ==========================
+# Denoising Functional MRI Data
+# Authors: Zaineb Amor, Guillaume Goudriet
+
+# For each subject and session:
+#   - Load the preprocessed anatomical (T1w) and functional (BOLD) images, as well as the brain mask.
+#   - Compute the mean functional image for inspection.
+#   - Load confound regressors (motion parameters, white matter and CSF signals) to remove noise.
+#   - Clean the functional data using the confounds and brain mask, applying linear detrending but without standardization.
+#   - Compute the mean of the cleaned functional image for quality check.
+#   - Save the cleaned functional image with a new filename (replacing "preproc_bold" with "preproc_bold_cleaned").
+# 
+# Note:
+#   - The paths and filenames differ depending on the protocol (MDD or SCZ).
+#   - The cleaning strategy is based on motion and WM/CSF confounds, which helps reduce physiological and motion-related artifacts.
+# ==========================
 
 for subject in subjects:
     for session in sessions:

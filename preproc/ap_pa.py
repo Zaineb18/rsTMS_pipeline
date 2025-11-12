@@ -2,12 +2,38 @@ from rsTMS_pipeline.data_loading.params import *
 from rsTMS_pipeline.data_loading.loading_utils import *
 from rsTMS_pipeline.preproc.preproc_utils import *
 import json
-
 import glob
 import nibabel as nib
 from nilearn.image import mean_img,load_img, index_img
 import os
 import shutil
+
+# ==========================
+# Preparing and Linking NIfTI and JSON Files
+#
+# Author: Zaineb Amor
+#
+# This section handles the following steps for each subject and session:
+#
+# 1. **NIfTI Files**
+#    - Load the trimmed functional (BOLD) and fieldmap (FMAP) data for the subject/session.
+#    - Sort the BOLD and FMAP files by run.
+#    - For each BOLD/FMAPP pair:
+#        * Compute the mean image of the BOLD file.
+#        * Generate a new AP-direction file from the PA-direction fieldmap and save the mean BOLD image there.
+#        * Copy the BOLD JSON file, rename it to match the new AP fieldmap, and save it.
+#    - This ensures that each fieldmap has a corresponding BOLD mean image and JSON metadata file.
+#
+# 2. **JSON Files**
+#    - Match each fieldmap JSON file to its corresponding functional run.
+#    - Update the fieldmap JSON with an 'IntendedFor' entry pointing to the matched BOLD file.
+#    - Save the updated JSON with proper indentation for readability.
+#
+# Notes:
+#    - This procedure ensures that the fieldmaps are correctly linked to the functional data they should correct.
+#    - File naming follows BIDS conventions (e.g., 'run-01', 'dir-PA', 'dir-AP').
+#    - This script should only be used if AP/PA acquisitions exist for the subject/session.
+# ==========================
 
 ################################ nifti files
 for subj in subjects: 

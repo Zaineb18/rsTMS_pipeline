@@ -5,6 +5,47 @@ from rsTMS_pipeline.targeting.targeting_utils import *
 from rsTMS_pipeline.plotting.plotting_utils import *
 from nilearn.image import mean_img, load_img, clean_img,index_img
 
+# ==========================
+# Seed-based Functional Connectivity Analysis for MDD Subjects
+#
+# Author: Zaineb Amor
+#
+# This section performs the following steps for each subject and session (MDD protocol):
+#
+# 1. **Load fMRIPREP Data**
+#    - Functional (BOLD), brain masks, confound files, anatomical images, and GM masks are loaded using `load_fmriprepdata`.
+#    - Functional and mask files are sorted by run.
+#
+# 2. **Clean Functional Data**
+#    - For each run:
+#        * `clean_bold` removes confounds and performs preprocessing such as detrending and standardization.
+#        * The mean functional image is computed for visualization.
+#        * Optional: save mean cleaned BOLD images (currently commented out).
+#
+# 3. **Time Series Subsetting**
+#    - Functional data is truncated to different lengths (`time_series_lengths`) to assess stability of connectivity.
+#    - `index_img` is used to select the first N volumes.
+#
+# 4. **Seed-based Connectivity (SGC)**
+#    - Define a seed in SGC (coordinates: 6,16,-10) and create spherical masks.
+#    - Compute correlation maps between the seed and the rest of the brain using `sgc_coorelation_map`.
+#    - ROI-based extraction over the DLPFC using `dlpfc_masking`.
+#    - Identify the voxel with minimum z-value in the ROI (`min_target_roi`) and optionally visualize connectivity.
+#
+# 5. **Seed-based Connectivity over GM**
+#    - Further restrict connectivity analysis to grey matter (`min_target_gm`) to refine target selection.
+#    - Optional visualization of projected connectivity on surface (currently commented out).
+#
+# 6. **Memory Management**
+#    - Delete intermediate variables after each step to save memory.
+#
+# Notes:
+#    - Output files are saved in a dedicated `figures/fmriprep` directory.
+#    - Visualization steps (plotting, surface projections) are currently commented out for speed but can be enabled for inspection.
+#    - This analysis is specific to **MDD subjects**.
+# ==========================
+
+
 print(FMRIPREP_PATH)
 time_series_lengths = [300, 600, 900, 1200]
 for subj in subjects: 
