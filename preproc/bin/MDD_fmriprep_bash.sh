@@ -1,7 +1,6 @@
 #!/bin/bash
 
 WORKDIR="/home/zamor/Documents/rTMS_DomenechAmor_2025/Data_WORKSHOP/"
-#subjects=("sub-P3")
 for sub in 01
 do
 	for ses in 1
