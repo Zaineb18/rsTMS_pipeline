@@ -3,6 +3,14 @@ import glob
 import nibabel as nib
 from nilearn.image import mean_img 
 
+# ==========================
+# Utility functions that return lists of NIfTI file paths at different 
+# stages of the pipeline, using glob to find files matching BIDS naming conventions.
+
+# Author: Zaineb Amor
+# ==========================
+
+
 def load_sourcedata(SOURCE_PATH, subj, ses):
     RFUNC_PATH = glob.glob(os.path.join(SOURCE_PATH, f'sub-{subj}', f'ses-{ses}', 'func', f'sub-{subj}_ses-{ses}*_bold.nii*'))
     RFMAP_PATH = glob.glob(os.path.join(SOURCE_PATH, f'sub-{subj}', f'ses-{ses}', 'fmap', f'sub-{subj}_ses-{ses}_epi.nii*'))

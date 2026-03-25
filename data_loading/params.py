@@ -2,6 +2,16 @@ import os
 import glob 
 import numpy as np
 
+# ==========================
+# Central configuration file. Set the proto variable to "MDD" or "SCZ"
+# to switch between the two study protocols.
+
+# Author: Zaineb Amor
+
+# Edit this file before running any script to point to the correct data
+# directory and select the subjects/sessions to process.
+# ==========================
+
 proto="MDD"
 
 if proto=="SCZ":

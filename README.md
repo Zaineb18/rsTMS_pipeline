@@ -34,6 +34,27 @@ rsTMS_pipeline/
 
 ## Data Loading (`data_loading/`)
 
+### `bin/convert_to_bids.sh`
+
+Converts raw DICOM files to NIfTI and organises them into a BIDS-compliant `rawdata/` directory.
+
+**Usage:**
+```bash
+bash data_loading/bin/convert_to_bids.sh /path/to/rTMS_data
+```
+
+**What it does:**
+- Expects sourcedata organised as `sourcedata/sub-*/<hash>/<series>/Unknown Study/`
+- Infers the BIDS folder and suffix for each series from the series name (case-insensitive matching on `t1`, `t2`, `invpe`, `bold`)
+- Converts matching series using `dcm2niix` (`-z y` for gzip NIfTI output)
+- Outputs to `rawdata/sub-*/ses-1/{anat,fmap,func}/`
+- Skips series with no DICOM files or no recognised BIDS match, with informative warnings
+- Does not abort on individual series failures (`set +e`) so the full dataset is processed even if some series fail
+
+**Dependencies:** `dcm2niix`
+
+---
+
 ### `params.py`
 
 Central configuration file. Set the `proto` variable to `"MDD"` or `"SCZ"` to switch between the two study protocols. Each protocol defines:
@@ -60,29 +81,7 @@ Utility functions that return lists of NIfTI file paths at different stages of t
 |---|---|
 | `load_sourcedata(SOURCE_PATH, subj, ses)` | BOLD and fmap NIfTI paths from `sourcedata/` |
 | `load_rawdata(RAW_PATH, subj, ses)` | BOLD and fmap NIfTI paths from `rawdata/` |
-| `load_trimmeddata(SOURCE_PATH, subj, ses)` | `acq-trimmed` BOLD and fmap paths (SCZ protocol) |
 | `load_fmriprepdata(FMRIPREP_PATH, subj, ses, space)` | fMRIPrep outputs: BOLD, brain mask, confounds TSV, T1w, GM probability map |
-
----
-
-### `bin/convert_to_bids.sh`
-
-Converts raw DICOM files to NIfTI and organises them into a BIDS-compliant `rawdata/` directory.
-
-**Usage:**
-```bash
-bash data_loading/bin/convert_to_bids.sh /path/to/rTMS_data
-```
-
-**What it does:**
-- Expects sourcedata organised as `sourcedata/sub-*/<hash>/<series>/Unknown Study/`
-- Infers the BIDS folder and suffix for each series from the series name (case-insensitive matching on `t1`, `t2`, `invpe`, `bold`)
-- Converts matching series using `dcm2niix` (`-z y` for gzip NIfTI output)
-- Outputs to `rawdata/sub-*/ses-1/{anat,fmap,func}/`
-- Skips series with no DICOM files or no recognised BIDS match, with informative warnings
-- Does not abort on individual series failures (`set +e`) so the full dataset is processed even if some series fail
-
-**Dependencies:** `dcm2niix`
 
 ---
 
@@ -96,11 +95,10 @@ bash data_loading/bin/convert_to_bids.sh /path/to/rTMS_data
 3. ap_pa.py                 ← generate AP fieldmaps, set IntendedFor
 4. MDD_fmriprep_bash.sh     ← run fMRIPrep (MDD protocol)
    or SZC_fmriprep_bash.sh  ← run fMRIPrep (SCZ protocol)
-5. h5py2txt.py              ← export MNI→T1w affine transforms from fMRIPrep H5 files
-6. charmtms_bash.sh         ← run SimNIBS CHARM head modelling
-7. denoise.py               ← confound regression on fMRIPrep output
+5. denoise.py               ← confound regression on fMRIPrep output
+6. h5py2txt.py              ← export MNI→T1w affine transforms from fMRIPrep H5 files
+7. charmtms_bash.sh         ← run SimNIBS CHARM head modelling
 ```
-
 ---
 
 ### `remove_dummy_scans.py`
@@ -160,6 +158,19 @@ Update the subject/session lists and directory paths at the top of each script b
 
 ---
 
+### `denoise.py`
+
+Applies confound regression to fMRIPrep-preprocessed BOLD data.
+
+- For each subject and session, loads the fMRIPrep BOLD image, T1w anatomical, and brain mask.
+- Loads confound regressors using nilearn's `load_confounds` with the `motion` and `wm_csf` strategy (motion parameter derivatives + white matter and CSF signals).
+- Cleans the BOLD image using `nilearn.image.clean_img` with linear detrending and no standardisation.
+- Saves the denoised image as a new file with `preproc_bold_cleaned` in the filename, alongside the original fMRIPrep output.
+
+**Dependencies:** `nilearn`
+
+---
+
 ### `h5py2txt.py`
 
 Exports the MNI-to-T1w affine transformation matrix from fMRIPrep's `.h5` output into a plain `.txt` file for use in SimNIBS CHARM head modelling.
@@ -194,19 +205,6 @@ bash preproc/bin/charmtms_bash.sh
 Update the directory paths at the top of the script before running.
 
 **Dependencies:** SimNIBS (`charm_tms` must be available in `PATH`)
-
----
-
-### `denoise.py`
-
-Applies confound regression to fMRIPrep-preprocessed BOLD data.
-
-- For each subject and session, loads the fMRIPrep BOLD image, T1w anatomical, and brain mask.
-- Loads confound regressors using nilearn's `load_confounds` with the `motion` and `wm_csf` strategy (motion parameter derivatives + white matter and CSF signals).
-- Cleans the BOLD image using `nilearn.image.clean_img` with linear detrending and no standardisation.
-- Saves the denoised image as a new file with `preproc_bold_cleaned` in the filename, alongside the original fMRIPrep output.
-
-**Dependencies:** `nilearn`
 
 ---
 
