@@ -171,8 +171,6 @@ Exports the MNI-to-T1w affine transformation matrix from fMRIPrep's `.h5` output
 
 This exported transform is used by `charmtms_bash.sh` to initialise head model registration.
 
-**Authors:** Zaineb Amor, Guillaume Goudriet
-
 **Dependencies:** `h5py`, `numpy`
 
 ---
@@ -207,8 +205,6 @@ Applies confound regression to fMRIPrep-preprocessed BOLD data.
 - Loads confound regressors using nilearn's `load_confounds` with the `motion` and `wm_csf` strategy (motion parameter derivatives + white matter and CSF signals).
 - Cleans the BOLD image using `nilearn.image.clean_img` with linear detrending and no standardisation.
 - Saves the denoised image as a new file with `preproc_bold_cleaned` in the filename, alongside the original fMRIPrep output.
-
-**Authors:** Zaineb Amor, Guillaume Goudriet
 
 **Dependencies:** `nilearn`
 
