@@ -3,14 +3,19 @@ import glob
 import nibabel as nib
 from nilearn.image import mean_img 
 
-def load_rawdata(RAW_PATH, subj, ses):
-    RFUNC_PATH = glob.glob(os.path.join(RAW_PATH, f'sub-{subj:02}', f'ses-{ses}', 'func', f'sub-{subj:02}_ses-{ses}*_acq-full*_bold.nii'))
-    RFMAP_PATH = glob.glob(os.path.join(RAW_PATH, f'sub-{subj:02}', f'ses-{ses}', 'fmap', f'sub-{subj:02}_ses-{ses}_acq-full*_epi.nii'))
+def load_sourcedata(SOURCE_PATH, subj, ses):
+    RFUNC_PATH = glob.glob(os.path.join(SOURCE_PATH, f'sub-{subj}', f'ses-{ses}', 'func', f'sub-{subj}_ses-{ses}*_bold.nii*'))
+    RFMAP_PATH = glob.glob(os.path.join(SOURCE_PATH, f'sub-{subj}', f'ses-{ses}', 'fmap', f'sub-{subj}_ses-{ses}_epi.nii*'))
     return(RFUNC_PATH, RFMAP_PATH)
 
-def load_trimmeddata(RAW_PATH, subj, ses):
-    RFUNC_PATH = glob.glob(os.path.join(RAW_PATH, f'sub-{subj:02}', f'ses-{ses}', 'func', f'sub-{subj:02}_ses-{ses}*_acq-trimmed*_bold.nii'))
-    RFMAP_PATH = glob.glob(os.path.join(RAW_PATH, f'sub-{subj:02}', f'ses-{ses}', 'fmap', f'sub-{subj:02}_ses-{ses}_acq-trimmed*_epi.nii'))
+def load_rawdata(RAW_PATH, subj, ses):
+    RFUNC_PATH = glob.glob(os.path.join(RAW_PATH, f'sub-{subj}', f'ses-{ses}', 'func', f'sub-{subj}_ses-{ses}*_bold.nii*'))
+    RFMAP_PATH = glob.glob(os.path.join(RAW_PATH, f'sub-{subj}', f'ses-{ses}', 'fmap', f'sub-{subj}_ses-{ses}_*_epi.nii*'))
+    return(RFUNC_PATH, RFMAP_PATH)
+
+def load_trimmeddata(SOURCE_PATH, subj, ses):
+    RFUNC_PATH = glob.glob(os.path.join(SOURCE_PATH, f'sub-{subj:02}', f'ses-{ses}', 'func', f'sub-{subj:02}_ses-{ses}*_acq-trimmed*_bold.nii*'))
+    RFMAP_PATH = glob.glob(os.path.join(SOURCE_PATH, f'sub-{subj:02}', f'ses-{ses}', 'fmap', f'sub-{subj:02}_ses-{ses}*_acq-trimmed*_epi.nii*'))
     return(RFUNC_PATH, RFMAP_PATH)
 
 def load_fmriprepdata(FMRIPREP_PATH, subj, ses, space):

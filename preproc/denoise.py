@@ -24,8 +24,8 @@ for subject in subjects:
     for session in sessions:
 
         ANAT_FILE = f'sub-{subject:02}_ses-{session}_space-MNI152NLin2009cAsym_desc-preproc_T1w.nii.gz'
-        FUNC_FILE = f'sub-{subject:02}_ses-{session}_task-rs_space-MNI152NLin2009cAsym_desc-preproc_bold.nii.gz' 
-        MASK_FILE = f'sub-{subject:02}_ses-{session}_task-rs_space-MNI152NLin2009cAsym_desc-brain_mask.nii.gz'
+        FUNC_FILE = f'sub-{subject:02}_ses-{session}_task-rest_acq-trimmed_space-MNI152NLin2009cAsym_desc-preproc_bold.nii.gz' 
+        MASK_FILE = f'sub-{subject:02}_ses-{session}_task-rest_acq-trimmed_space-MNI152NLin2009cAsym_desc-brain_mask.nii.gz'
         ANAT_PATH = os.path.join(FMRIPREP_PATH, f'sub-{subject:02}',f'ses-{session}', 'anat', ANAT_FILE)
         FUNC_PATH = os.path.join(FMRIPREP_PATH, f'sub-{subject:02}',f'ses-{session}', 'func', FUNC_FILE)
         MASK_PATH = os.path.join(FMRIPREP_PATH, f'sub-{subject:02}',f'ses-{session}', 'func', MASK_FILE)
