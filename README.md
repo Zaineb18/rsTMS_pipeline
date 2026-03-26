@@ -99,6 +99,7 @@ Utility functions that return lists of NIfTI file paths at different stages of t
 6. h5py2txt.py              ← export MNI→T1w affine transforms from fMRIPrep H5 files
 7. charmtms_bash.sh         ← run SimNIBS CHARM head modelling
 ```
+
 ---
 
 ### `remove_dummy_scans.py`
@@ -160,12 +161,17 @@ Update the subject/session lists and directory paths at the top of each script b
 
 ### `denoise.py`
 
-Applies confound regression to fMRIPrep-preprocessed BOLD data.
+Applies confound regression to fMRIPrep-preprocessed BOLD data using `clean_bold()` from `preproc_utils.py`.
 
-- For each subject and session, loads the fMRIPrep BOLD image, T1w anatomical, and brain mask.
-- Loads confound regressors using nilearn's `load_confounds` with the `motion` and `wm_csf` strategy (motion parameter derivatives + white matter and CSF signals).
-- Cleans the BOLD image using `nilearn.image.clean_img` with linear detrending and no standardisation.
-- Saves the denoised image as a new file with `preproc_bold_cleaned` in the filename, alongside the original fMRIPrep output.
+For each subject and session, `load_fmriprepdata()` retrieves the BOLD, brain mask, confounds TSV, T1w, and grey matter paths. The script then detects whether run labels are present in the filenames and, if so, sorts all file lists by run number to ensure correct pairing across runs. Single-run sessions are handled transparently.
+
+For each (BOLD, mask, confounds) triplet, `clean_bold()` is called, which:
+
+1. Loads confound regressors from the fMRIPrep TSV via nilearn's `load_confounds`, using motion parameters (6 params + temporal derivatives) and WM/CSF mean signals as the denoising strategy. The confounds TSV path is resolved automatically from the BOLD file path — it does not need to be passed separately.
+2. Imputes NaN values in the confounds matrix with `0`. Motion derivative confounds are undefined at `t=0` (no prior timepoint to difference against), producing a NaN in the first row. Setting this to `0` means the regressor contributes nothing at that timepoint, which is the correct neutral assumption. This step is required because scipy's QR decomposition inside `clean_img` cannot handle non-finite values.
+3. Cleans the BOLD image by regressing out confounds, applying linear detrending to remove slow scanner drift, and restricting processing to in-brain voxels via the brain mask. Standardisation is disabled to preserve the original BOLD signal scale.
+
+The denoised image is saved alongside the fMRIPrep output with `preproc_bold_cleaned` replacing `preproc_bold` in the filename.
 
 **Dependencies:** `nilearn`
 
@@ -175,10 +181,16 @@ Applies confound regression to fMRIPrep-preprocessed BOLD data.
 
 Exports the MNI-to-T1w affine transformation matrix from fMRIPrep's `.h5` output into a plain `.txt` file for use in SimNIBS CHARM head modelling.
 
-- Locates the `from-MNI152NLin2009cAsym_to-T1w_mode-image_xfm.h5` file produced by fMRIPrep for each subject/session.
-- Opens it with `h5py` and reads `TransformParameters` (rotation matrix + translation) and `TransformFixedParameters` (centre of rotation) from `TransformGroup/2`.
-- Reconstructs the full 4×4 affine matrix using a `MatrixOffsetTransformBase` helper (defined in `preproc_utils.py`).
-- Saves the result as a `.txt` file in `derivatives/h5_transforms/sub-XX/ses-X/`, creating the output folder if needed.
+For each subject and session, the script locates the fMRIPrep-generated H5 file encoding the inverse transform (`from-MNI152NLin2009cAsym_to-T1w_mode-image_xfm.h5`) using a glob on the subject's `anat/` directory.
+
+The H5 file is opened with `h5py` and `TransformGroup/2` is read — the group containing the affine component of the MNI-to-T1w warp. Two arrays are extracted:
+
+- `TransformParameters`: a flat array of 12 values encoding the 3×3 rotation/scaling matrix (indices 0–8) and the 3D translation vector (indices 9–11).
+- `TransformFixedParameters`: the 3D centre of rotation, stored separately following ITK's `MatrixOffsetTransformBase` convention.
+
+A `MatrixOffsetTransformBase` object is instantiated with the matrix, translation, and centre. `compute_offset()` derives the effective translation offset accounting for the centre of rotation (`offset = translation + center − matrix @ center`), and `generate_affine_matrix()` assembles the full 4×4 homogeneous affine matrix. All intermediate components are printed for verification.
+
+The output directory (`TRANSFORM_PATH/sub-XX/ses-X/`) is created if it does not already exist. The affine matrix is saved as a space-delimited `.txt` file whose name is derived from the H5 filename by stripping the protocol-specific `_ses-pre` suffix and replacing the `.h5` extension with `.txt`.
 
 This exported transform is used by `charmtms_bash.sh` to initialise head model registration.
 

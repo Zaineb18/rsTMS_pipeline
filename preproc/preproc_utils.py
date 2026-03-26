@@ -8,7 +8,7 @@ import nibabel as nib
 from scipy.signal import detrend
 from scipy.stats import pearsonr
 from nibabel.affines import apply_affine
-
+from nilearn import image
 from rsTMS_pipeline.data_loading.params import *
 
 def extract_runs(file_list):
@@ -30,11 +30,13 @@ def add_ignore_suffix(file_path):
     os.rename(file_path, new_path)
     print(f"Renamed:\n  {file_path}\n→ {new_path}")
 
-def clean_bold(fpath,tr=1.09):
-    confounds, sample_mask = load_confounds(fpath, strategy=('motion','wm_csf','global_signal'), motion='derivatives', scrub=0)
-    clean_func = clean_img(imgs=fpath, confounds=confounds, standardize=False, detrend=False, low_pass=None, high_pass=None, t_r=tr)
-    mean_func = mean_img(clean_func)
-    return(clean_func, mean_func, sample_mask, confounds)  
+def clean_bold(func_f,confounds_f,mask_f, tr=1.09):
+    confounds,sample_mask=load_confounds(func_f,strategy=("motion","wm_csf"),
+                                                 motion="derivatives")
+    func_cleaned=image.clean_img(func_f,confounds=confounds,sample_mask=sample_mask,
+                                         mask_img=mask_f,standardize=False,linear_detrend=True)
+    mean_func=image.mean_img(func_cleaned)
+    return(func_cleaned, mean_func, sample_mask, confounds)  
 
 def h5txt(FMRIPREP_PATH, TRANSFORM_PATH, subj, ses):
     transform_file = glob.glob(os.path.join(FMRIPREP_PATH, f'sub-{subj:02}',f'ses-{ses}', 'anat', "*from-MNI152NLin2009cAsym_to-T1w_mode-image_xfm.h5"), recursive=True)[0]

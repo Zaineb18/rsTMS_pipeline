@@ -27,7 +27,7 @@ if proto=="SCZ":
     SIMNIBS_PATH =os.path.join(DATA_DIR, 'derivatives', 'simnibs')
     change_from_LPS_to_RAS = np.array([[1, -1, 1, 1], [-1, 1, 1, 1], [1, 1, 1, -1], [1, 1, 1, 1]])
 elif proto=="MDD":
-    DATA_DIR = "/home/zamor/nasShare/INM-GlobalShare/DomenechAmor_MDDrsTMS_2026/anonym_data/"
+    DATA_DIR = "/home/zamor/Documents/rTMS_DomenechAmor_2025/DomenechAmor_MDDrsTMS_2026/anonym_data"
     space = "MNI152NLin2009cAsym"
     subjects = ['OUVfre']
     sessions = [1]

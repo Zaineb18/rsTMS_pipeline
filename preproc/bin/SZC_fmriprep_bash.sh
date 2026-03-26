@@ -22,8 +22,6 @@ do
 		--me-t2s-fit-method curvefit \
 		--ignore fieldmaps
 #		--dummy-scans 0 \
-	#	--use-syn-sdc \
-	#	--force-sdc \
 		
 	rm -rf "$tmpdir"
 	done
