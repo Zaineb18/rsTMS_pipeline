@@ -168,8 +168,7 @@ For each subject and session, `load_fmriprepdata()` retrieves the BOLD, brain ma
 For each (BOLD, mask, confounds) triplet, `clean_bold()` is called, which:
 
 1. Loads confound regressors from the fMRIPrep TSV via nilearn's `load_confounds`, using motion parameters (6 params + temporal derivatives) and WM/CSF mean signals as the denoising strategy. The confounds TSV path is resolved automatically from the BOLD file path — it does not need to be passed separately.
-2. Imputes NaN values in the confounds matrix with `0`. Motion derivative confounds are undefined at `t=0` (no prior timepoint to difference against), producing a NaN in the first row. Setting this to `0` means the regressor contributes nothing at that timepoint, which is the correct neutral assumption. This step is required because scipy's QR decomposition inside `clean_img` cannot handle non-finite values.
-3. Cleans the BOLD image by regressing out confounds, applying linear detrending to remove slow scanner drift, and restricting processing to in-brain voxels via the brain mask. Standardisation is disabled to preserve the original BOLD signal scale.
+2. Cleans the BOLD image by regressing out confounds, applying linear detrending to remove slow scanner drift, and restricting processing to in-brain voxels via the brain mask. Standardisation is disabled to preserve the original BOLD signal scale.
 
 The denoised image is saved alongside the fMRIPrep output with `preproc_bold_cleaned` replacing `preproc_bold` in the filename.
 
