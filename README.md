@@ -24,7 +24,7 @@ rsTMS_pipeline/
 │       └── charmtms_bash.sh
 ├── targeting/              # Functional connectivity and TMS target identification
 │   ├── sgc_dlpfc_connectivity.py
-│   ├── targeting_utils.py
+│   └── targeting_utils.py
 ├── plotting/               # Visualisation utilities
 ├── notebooks/              # Exploratory and demonstration notebooks
 └── __init__.py
