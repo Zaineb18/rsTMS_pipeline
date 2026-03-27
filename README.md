@@ -230,7 +230,7 @@ Update the directory paths at the top of the script before running.
 
 Computes individualized TMS targets from resting-state fMRI data by identifying
 the DLPFC site most anticorrelated with the subgenual cingulate cortex (SGC),
-following Fox et al. (Biol Psychiatry 2012; JAMA Psychiatry 2013).
+following Fox et al. (Biol Psychiatry 2012).
 
 > **Note:** This script is specific to the **MDD protocol**. The SCZ protocol
 > uses a separate targeting pipeline implemented in BrainVoyager.
@@ -287,10 +287,6 @@ following Fox et al. (Biol Psychiatry 2012; JAMA Psychiatry 2013).
 | `used_fallback` | `True` if no anticorrelated voxel found; Fox coord used |
 
 **Dependencies:** `nilearn`, `scipy`, `nibabel`, `numpy`, `pandas`
-
-**References:**
-- Fox MD et al. (2012). Biol Psychiatry, 71(12), 1067–1074.
-- Fox MD et al. (2013). JAMA Psychiatry, 70(7), 671–679.
 
 ---
 
