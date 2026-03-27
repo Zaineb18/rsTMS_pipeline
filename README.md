@@ -5,7 +5,6 @@ A Python pipeline for preprocessing and targeting resting-state fMRI data in the
 ---
 
 ## Repository Structure
-
 ```
 rsTMS_pipeline/
 ├── data_loading/           # Parameters and utilities for loading BIDS data
@@ -29,7 +28,8 @@ rsTMS_pipeline/
 └── __init__.py
 ```
 ---
-### Full pipeline order
+
+## Full pipeline order
 ```
 1. convert_to_bids.sh           ← convert DICOMs to BIDS NIfTI
 2. remove_dummy_scans.py        ← remove non-steady-state volumes
@@ -167,7 +167,7 @@ For each subject and session, `load_fmriprepdata()` retrieves the BOLD, brain ma
 For each (BOLD, mask, confounds) triplet, `clean_bold()` is called, which:
 
 1. Loads confound regressors from the fMRIPrep TSV via nilearn's `load_confounds`, using motion parameters (6 params + temporal derivatives) and WM/CSF mean signals as the denoising strategy. The confounds TSV path is resolved automatically from the BOLD file path — it does not need to be passed separately.
-2. Cleans the BOLD image by regressing out confounds, and restricting processing to in-brain voxels via the brain mask. Standardisation is disabled to preserve the original BOLD signal scale.
+2. Cleans the BOLD image by regressing out confounds, and restricting processing to in-brain voxels via the brain mask.
 
 The denoised image is saved alongside the fMRIPrep output with `preproc_bold_cleaned` replacing `preproc_bold` in the filename.
 
@@ -228,8 +228,6 @@ following Fox et al. (Biol Psychiatry 2012; JAMA Psychiatry 2013).
 
 > **Note:** This script is specific to the **MDD protocol**. The SCZ protocol
 > uses a separate targeting pipeline implemented in BrainVoyager.
-
-**Requires:** denoised BOLD images produced by `denoise.py`.
 
 **What it does**, for each subject and session:
 
