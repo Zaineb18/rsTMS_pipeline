@@ -26,10 +26,22 @@ rsTMS_pipeline/
 ├── targeting/              # Functional connectivity and TMS target identification
 ├── plotting/               # Visualisation utilities
 ├── notebooks/              # Exploratory and demonstration notebooks
-├── figures/                # Output figures
 └── __init__.py
 ```
-
+---
+### Full pipeline order
+```
+1. convert_to_bids.sh           ← convert DICOMs to BIDS NIfTI
+2. remove_dummy_scans.py        ← remove non-steady-state volumes
+3. ap_pa.py                     ← generate AP fieldmaps, set IntendedFor
+4. MDD_fmriprep_bash.sh         ← run fMRIPrep (MDD protocol)
+   or SZC_fmriprep_bash.sh      ← run fMRIPrep (SCZ protocol)
+5. denoise.py                   ← confound regression on fMRIPrep output
+6. sgc_dlpfc_connectivity.py    ← SGC–DLPFC connectivity and TMS targeting [MDD only]
+   (SCZ targeting: BrainVoyager) ← separate pipeline, not included here
+7. h5py2txt.py                  ← export MNI→T1w affine transforms, can also be run in parallel to the targeting
+8. charmtms_bash.sh             ← run SimNIBS CHARM head modelling, can also be run in parallel to the targeting
+```
 ---
 
 ## Data Loading (`data_loading/`)
@@ -86,19 +98,6 @@ Utility functions that return lists of NIfTI file paths at different stages of t
 ---
 
 ## Preprocessing (`preproc/`)
-
-### Full pipeline order
-
-```
-1. convert_to_bids.sh       ← convert DICOMs to BIDS NIfTI
-2. remove_dummy_scans.py    ← remove non-steady-state volumes
-3. ap_pa.py                 ← generate AP fieldmaps, set IntendedFor
-4. MDD_fmriprep_bash.sh     ← run fMRIPrep (MDD protocol)
-   or SZC_fmriprep_bash.sh  ← run fMRIPrep (SCZ protocol)
-5. denoise.py               ← confound regression on fMRIPrep output
-6. h5py2txt.py              ← export MNI→T1w affine transforms from fMRIPrep H5 files
-7. charmtms_bash.sh         ← run SimNIBS CHARM head modelling
-```
 
 ---
 
@@ -168,7 +167,7 @@ For each subject and session, `load_fmriprepdata()` retrieves the BOLD, brain ma
 For each (BOLD, mask, confounds) triplet, `clean_bold()` is called, which:
 
 1. Loads confound regressors from the fMRIPrep TSV via nilearn's `load_confounds`, using motion parameters (6 params + temporal derivatives) and WM/CSF mean signals as the denoising strategy. The confounds TSV path is resolved automatically from the BOLD file path — it does not need to be passed separately.
-2. Cleans the BOLD image by regressing out confounds, applying linear detrending to remove slow scanner drift, and restricting processing to in-brain voxels via the brain mask. Standardisation is disabled to preserve the original BOLD signal scale.
+2. Cleans the BOLD image by regressing out confounds, and restricting processing to in-brain voxels via the brain mask. Standardisation is disabled to preserve the original BOLD signal scale.
 
 The denoised image is saved alongside the fMRIPrep output with `preproc_bold_cleaned` replacing `preproc_bold` in the filename.
 
@@ -216,6 +215,78 @@ bash preproc/bin/charmtms_bash.sh
 Update the directory paths at the top of the script before running.
 
 **Dependencies:** SimNIBS (`charm_tms` must be available in `PATH`)
+
+---
+
+## Targeting (`targeting/`)
+
+### `targeting/sgc_dlpfc_connectivity.py` ⚠️ MDD protocol only
+
+Computes individualized TMS targets from resting-state fMRI data by identifying
+the DLPFC site most anticorrelated with the subgenual cingulate cortex (SGC),
+following Fox et al. (Biol Psychiatry 2012; JAMA Psychiatry 2013).
+
+> **Note:** This script is specific to the **MDD protocol**. The SCZ protocol
+> uses a separate targeting pipeline implemented in BrainVoyager.
+
+**Requires:** denoised BOLD images produced by `denoise.py`.
+
+**What it does**, for each subject and session:
+
+1. Loads fMRIPrep outputs via `load_fmriprepdata()` (BOLD, brain mask,
+   confounds, T1w, GM segmentation).
+2. Denoises the BOLD image via `clean_bold()` (motion + WM/CSF confound
+   regression).
+3. Computes a whole-brain SGC seed-based connectivity map (10 mm sphere,
+   MNI: 6, 16, −10) using voxelwise Pearson correlation. Both a raw Pearson r
+   map and a Fisher z-transformed map are returned.
+4. Constructs a binary DLPFC ROI from three 15 mm spheres centred on Fox 2013
+   target coordinates: (−36, 39, 43), (−44, 40, 29), (−41, 16, 54).
+5. Identifies the voxel with the minimum (most anticorrelated) connectivity
+   value within the DLPFC ROI, under two tissue masks:
+     - **Brain mask** — whole-brain, first-pass estimate
+     - **GM mask** — grey matter only (probability > 0.5), recommended
+       final clinical target
+6. Compares the individualized coordinate against the Fox group-level standard
+   (−46, 46, 36) and reports the Euclidean distance.
+7. Saves figures and a per-run TSV results file.
+
+**Outputs** saved under `rsTMS_pipeline/figures/sub-XX/ses-XX/`:
+
+| File | Content |
+|---|---|
+| `*_meanbold.png` | Mean BOLD with SGC seed marker and brain mask contour |
+| `*_roidlpfc.png` | DLPFC ROI overlaid on mean BOLD |
+| `*_{stat}map-{tissue}.png` | SGC connectivity map with ROI contour and target marker |
+| `*_{stat}surf-{tissue}.png` | Left hemisphere surface projection |
+| `*_target-comparison-vol_{stat}map-{tissue}.png` | 4-panel volume comparison: individual vs Fox standard |
+| `*_target-comparison-surf_{stat}map-{tissue}.png` | Surface comparison: individual vs Fox standard |
+
+**Results** saved under `rsTMS_pipeline/results/sub-XX/ses-XX/`:
+
+| File | Content |
+|---|---|
+| `*_targeting-results.csv` | TSV with MNI coordinates, connectivity values, and distances for all (stat × tissue) combinations |
+
+**Result columns:**
+
+| Column | Description |
+|---|---|
+| `subject`, `session`, `run` | BIDS identifiers |
+| `stat` | `Pearson Correlation` or `Fisher Z` |
+| `tissue` | `brain mask` or `GM mask` |
+| `mni_x/y/z` | Individualized target coordinate (mm, rounded) |
+| `min_connectivity` | Connectivity value at target (r or z, should be negative) |
+| `std_x/y/z` | Fox standard coordinate (−46, 46, 36) |
+| `distance_mm` | Euclidean distance: individual vs standard |
+| `delta_x/y/z_mm` | Per-axis displacement |
+| `used_fallback` | `True` if no anticorrelated voxel found; Fox coord used |
+
+**Dependencies:** `nilearn`, `scipy`, `nibabel`, `numpy`, `pandas`
+
+**References:**
+- Fox MD et al. (2012). Biol Psychiatry, 71(12), 1067–1074.
+- Fox MD et al. (2013). JAMA Psychiatry, 70(7), 671–679.
 
 ---
 

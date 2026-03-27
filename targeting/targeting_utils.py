@@ -9,8 +9,8 @@ from scipy.signal import detrend
 from scipy.stats import pearsonr
 from nibabel.affines import apply_affine
 
-def sgc_masking(fpath,clean_func,nscans,radius_mm=10,seeds_sgc = [(6,16,-10)],tr=1.02): 
-    sgc_masker = NiftiSpheresMasker(seeds_sgc,radius=10,t_r=1,allow_overlap=True)
+def sgc_masking(clean_func,radius_mm=10, seeds_sgc = [(6,16,-10)]): 
+    sgc_masker = NiftiSpheresMasker(seeds_sgc,radius=radius_mm,t_r=1,allow_overlap=True)
     sgc_mask = sgc_masker.fit_transform(clean_func)
     sgc_mask_noncl= sgc_masker.fit_transform(clean_func)
     return(sgc_masker,sgc_mask,sgc_mask_noncl)
@@ -37,7 +37,10 @@ def sgc_coorelation_map(mpath, clean_func, sgc_mask,):
     sgc_mask_standardized = (sgc_mask - np.mean(sgc_mask)) / np.std(sgc_mask)
     correlation_map = np.array([pearsonr(sgc_mask_standardized.ravel(), voxel_ts)[0] for voxel_ts in brain_voxels.T])
     correlation_img = brain_masker.inverse_transform(correlation_map)
-    return(correlation_img, correlation_map) 
+    # ADD: Fisher r-to-z transform (makes variable name z_img actually correct)
+    z_map = np.arctanh(np.clip(correlation_map, -0.9999, 0.9999))
+    z_img = brain_masker.inverse_transform(z_map)        
+    return(correlation_img, correlation_map, z_img, z_map) 
 
 def dlpfc_masking(clean_func,mpath,seeds_dlpfc = [(-36,39,43), (-44,40,29), (-41,16,54)]): 
     roi_data = np.zeros(clean_func.shape[:3]) 
@@ -50,16 +53,20 @@ def dlpfc_masking(clean_func,mpath,seeds_dlpfc = [(-36,39,43), (-44,40,29), (-41
     roi_img = nib.Nifti1Image(roi_data, affine=clean_func.affine)   
     return(roi_data, roi_img)
 
-def min_target_roi(z_img, roi_img): 
+def min_target_roi(z_img, roi_img, fallback_coord=(-46, 46, 36)): 
     masked_z_img = math_img("z_img * (roi_img > 0)", z_img=z_img, roi_img=roi_img)
     dlpfc_roi_resampled = resample_to_img(roi_img, masked_z_img, interpolation='nearest')
     dlpfc_mask_data = dlpfc_roi_resampled.get_fdata() > 0
     masked_z_data = masked_z_img.get_fdata()
     masked_z_data[~dlpfc_mask_data] = np.nan  # Ignore values outside the ROI
+
+    min_val = np.nanmin(masked_z_data)
+    if min_val >= 0:
+        print(f"WARNING: no anticorrelated voxel in DLPFC ROI "
+              f"(min z = {min_val:.3f}). Using Fox fallback coord {fallback_coord}.")
+        return masked_z_img, None, min_val, np.array(fallback_coord)
     min_voxel_idx = np.unravel_index(np.nanargmin(masked_z_data), masked_z_data.shape)
-    affine = masked_z_img.affine
-    min_mni_coord = apply_affine(affine, min_voxel_idx)
-    
+    min_mni_coord = apply_affine(masked_z_img.affine, min_voxel_idx)
     print(f"Max voxel index (in image space): {min_voxel_idx}")
     print(f"Max Z-score value: {masked_z_data[min_voxel_idx]}")
     print(f"Max Z-score MNI coordinates: {min_mni_coord}")
@@ -71,7 +78,7 @@ def gm_mask(gmpath, masked_z_img):
     GM_thresh = new_img_like(GM_thresh, GM_thresh.get_fdata().squeeze())
     return(GM_thresh)
 
-def min_target_gm(z_img, roi_img,gmpath): 
+def min_target_gm(z_img, roi_img,gmpath, fallback_coord=(-46, 46, 36)): 
     masked_z_img = math_img("z_img * (roi_img > 0)", z_img=z_img, roi_img=roi_img)
     GM_thresh = gm_mask(gmpath, masked_z_img)
     final_projected_img = math_img("masked_z_img * GM_thresh", masked_z_img=masked_z_img, GM_thresh=GM_thresh)
@@ -79,10 +86,14 @@ def min_target_gm(z_img, roi_img,gmpath):
     dlpfc_mask_data = dlpfc_roi_resampled.get_fdata() > 0 
     final_projected_data = final_projected_img.get_fdata()
     final_projected_data[~dlpfc_mask_data] = np.nan  
-    min_voxel_idx = np.unravel_index(np.nanargmin(final_projected_data), final_projected_data.shape)
-    affine = masked_z_img.affine
-    min_mni_coord = apply_affine(affine, min_voxel_idx)
 
+    min_val = np.nanmin(final_projected_data)
+    if min_val >= 0:
+        print(f"WARNING: no anticorrelated GM voxel in DLPFC ROI "
+              f"(min z = {min_val:.3f}). Using Fox fallback coord {fallback_coord}.")
+        return final_projected_img, None, min_val, np.array(fallback_coord)
+    min_voxel_idx = np.unravel_index(np.nanargmin(final_projected_data), final_projected_data.shape)
+    min_mni_coord = apply_affine(masked_z_img.affine, min_voxel_idx)
     print(f"Max voxel index (in image space): {min_voxel_idx}")
     print(f"Max Z-score value: {final_projected_data[min_voxel_idx]}")
     print(f"Max Z-score MNI coordinates: {min_mni_coord}")

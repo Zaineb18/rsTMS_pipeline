@@ -4,6 +4,7 @@ from rsTMS_pipeline.preproc.preproc_utils import *
 import glob
 import nibabel as nib
 from nilearn.image import mean_img 
+import pandas as pd
 
 # ==========================
 # Utility functions that return lists of NIfTI file paths at different 
@@ -36,3 +37,9 @@ def load_fmriprepdata(FMRIPREP_PATH, subj, ses, space):
     ANAT_PATH = glob.glob(os.path.join(FMRIPREP_PATH, f'sub-{subj}', f'ses-{ses}', 'anat', f'*space-{space}*_T1w.nii.gz'))
     GM_PATH = glob.glob(os.path.join(FMRIPREP_PATH, f'sub-{subj}', f'ses-{ses}', 'anat', f'*space-{space}*_label-GM_probseg.nii.gz'))
     return(FUNC_PATH, MASK_PATH, confounds_file, ANAT_PATH, GM_PATH)
+
+def save_targeting_results(results, subj, ses, output_dir='rsTMS_pipeline/results'):
+    df_run = pd.DataFrame(results)
+    csv_path = os.path.join(output_dir, f'sub-{subj}_ses-{ses}_targeting-results.csv')
+    df_run.to_csv(csv_path, index=False, sep='\t')
+    return df_run, csv_path

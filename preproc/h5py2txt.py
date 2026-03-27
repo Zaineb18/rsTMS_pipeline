@@ -7,7 +7,7 @@ import os
 # ==========================
 # Extract Affine Transforms from fMRIPrep H5 Files and Export as .txt
 #
-# Authors: Zaineb Amor, Guillaume Goudriet
+# Authors: Zaineb Amor & Guillaume Goudriet
 #
 # Context:
 #   fMRIPrep stores spatial transformation parameters in HDF5 (.h5) files

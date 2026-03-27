@@ -34,7 +34,18 @@ def clean_bold(func_f,confounds_f,mask_f, tr=1.09):
     confounds,sample_mask=load_confounds(func_f,strategy=("motion","wm_csf"),
                                                  motion="derivatives")
     func_cleaned=image.clean_img(func_f,confounds=confounds,sample_mask=sample_mask,
-                                         mask_img=mask_f,standardize=False,linear_detrend=True)
+                                         mask_img=mask_f,standardize=False, detrend=False)
+    #func_cleaned = image.clean_img(
+    #    func_f,
+    #    confounds=confounds,
+    #    sample_mask=sample_mask,
+    #    mask_img=mask_f,
+    #    standardize="zscore_sample",  # normalize voxel variance
+    #    detrend=False,                 # remove residual drift
+        #high_pass=0.01,               # } bandpass — requires t_r
+        #low_pass=0.1,                 # }
+    #    t_r=tr                        # pass tr you already have
+    #)
     mean_func=image.mean_img(func_cleaned)
     return(func_cleaned, mean_func, sample_mask, confounds)  
 

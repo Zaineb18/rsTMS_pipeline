@@ -1,0 +1,5 @@
+subject	session	run	stat	tissue	mni_x	mni_y	mni_z	min_connectivity	std_x	std_y	std_z	distance_mm	delta_x_mm	delta_y_mm	delta_z_mm	used_fallback
+OUVfre	1	run-01	Person Correlation	brain mask	-31	35	33	-0.2358	-46	46	36	18.84	15	11	3	False
+OUVfre	1	run-01	Person Correlation	GM mask	-31	35	33	-0.2358	-46	46	36	18.84	15	11	3	False
+OUVfre	1	run-01	Fisher Z	brain mask	-31	35	33	-0.2403	-46	46	36	18.84	15	11	3	False
+OUVfre	1	run-01	Fisher Z	GM mask	-31	35	33	-0.2403	-46	46	36	18.84	15	11	3	False
