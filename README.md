@@ -26,7 +26,11 @@ rsTMS_pipeline/
 │   ├── sgc_dlpfc_connectivity.py
 │   └── targeting_utils.py
 ├── plotting/               # Visualisation utilities
+│   └── plotting_utils.py
 ├── notebooks/              # Exploratory and demonstration notebooks
+│   ├── example_MDD.ipynb
+│   ├── example_SCZ.ipynb
+│   └── target_stability.ipynb
 └── __init__.py
 ```
 ---
