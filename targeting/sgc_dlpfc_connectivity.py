@@ -239,24 +239,24 @@ for subj in subjects:
                     
                     coord = tuple(np.round(min_mni_coord).astype(int))
                     results.append({
-                        'subject':subj,
-                        'session':ses,
-                        'run':re.search(r'run-(\d+)', func_f).group(0) if re.search(r'run-(\d+)', func_f) else 'run-01',
-                        'stat':stats[stat],
-                        'tissue':tissues[tissue],
-                        'mni_x':coord[0],
-                        'mni_y':coord[1],
-                        'mni_z':coord[2],
-                        'min_connectivity':float(np.round(min_z_value, 4)),
-                        'std_x':std_coord[0],
-                        'std_y':std_coord[1],
-                        'std_z':std_coord[2],
-                        'distance_mm':float(np.round(distance_mm, 2)),
-                        'delta_x_mm':abs(coord[0] - std_coord[0]),
-                        'delta_y_mm':abs(coord[1] - std_coord[1]),
-                        'delta_z_mm':abs(coord[2] - std_coord[2]),
-                        'used_fallback':min_voxel_idx is None,
-                        })                    
+                            'subject':          subj,
+                            'session':          ses,
+                            'run':              re.search(r'run-(\d+)', func_f).group(0) if re.search(r'run-(\d+)', func_f) else 'run-01',
+                            'stat':             stats[stat],
+                            'tissue':           tissues[tissue],
+                            'mni_x':            coord[0],
+                            'mni_y':            coord[1],
+                            'mni_z':            coord[2],
+                            'min_connectivity': float(np.round(min_z_value, 4)),
+                            'std_x':            std_coord[0],
+                            'std_y':            std_coord[1],
+                            'std_z':            std_coord[2],
+                            'distance_mm':      float(np.round(distance_mm, 2)),
+                            'delta_x_mm':       abs(coord[0] - std_coord[0]),
+                            'delta_y_mm':       abs(coord[1] - std_coord[1]),
+                            'delta_z_mm':       abs(coord[2] - std_coord[2]),
+                            'used_fallback':    min_voxel_idx is None,
+                        })                  
                     
                     del(masked_conn_img, min_voxel_idx, min_z_value, min_mni_coord)
             df_run, csv_path = save_targeting_results(results, subj, ses, output_dir=f'rsTMS_pipeline/results/sub-{subj}/ses-{ses}')
