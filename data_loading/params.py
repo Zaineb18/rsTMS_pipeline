@@ -37,4 +37,6 @@ elif proto=="MDD":
     TRANSFORM_PATH = os.path.join(DATA_DIR, 'derivatives', 'h5_transforms')
     CHARM_PATH =os.path.join(DATA_DIR, 'derivatives', 'charmtms')
     SIMNIBS_PATH =os.path.join(DATA_DIR, 'derivatives', 'simnibs')
+    FIGS_PATH = os.path.join(DATA_DIR, 'derivatives', 'figures')
+    RES_PATH = os.path.join(DATA_DIR, 'derivatives', 'results')
     change_from_LPS_to_RAS = np.array([[1, -1, 1, 1], [-1, 1, 1, 1], [1, 1, 1, -1], [1, 1, 1, 1]])

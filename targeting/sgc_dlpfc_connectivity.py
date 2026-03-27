@@ -120,10 +120,6 @@ import pandas as pd
 #          - Stat map centred on individual target
 #          - Stat map centred on standard target
 #          - Summary text: coordinates, Euclidean distance, axis breakdown
-#   All figures are saved under rsTMS_pipeline/figures/sub-XX/ses-XX/
-#   following the naming convention:
-#     sub-{subj}_ses-{ses}_target-comparison-vol_{stat}map-{tissue}.png
-#     sub-{subj}_ses-{ses}_target-comparison-surf_{stat}map-{tissue}.png
 #
 # --- Step 8: Save targeting results to TSV ---
 #
@@ -140,9 +136,6 @@ import pandas as pd
 #     - Per-axis displacement (delta_x/y/z_mm)
 #     - Fallback flag (used_fallback = True if no anticorrelated voxel
 #       was found and the Fox coordinate was substituted)
-#
-#   Output: rsTMS_pipeline/results/sub-{subj}/ses-{ses}/
-#             sub-{subj}_ses-{ses}_targeting-results.csv
 #
 #   The recommended value for neuronavigation is the row where
 #   stat='Fisher Z' and tissue='GM mask', as this combines the most
@@ -199,18 +192,19 @@ for subj in subjects:
        
         for func_f, mask_f, confounds_f in zip(bold_files, mask_files, confounds_files):
             clean_func, mean_func, sample_mask, confounds = clean_bold(func_f, confounds_f,mask_f, tr=1.09)
-            os.makedirs(f'rsTMS_pipeline/figures/sub-{subj}/ses-{ses}', exist_ok=True)
-            os.makedirs(f'rsTMS_pipeline/results/sub-{subj}/ses-{ses}', exist_ok=True)
+            os.makedirs(os.path.join(FIGS_PATH, f'sub-{subj}/ses-{ses}'), exist_ok=True)            
+            os.makedirs(os.path.join(RES_PATH, f'sub-{subj}/ses-{ses}'), exist_ok=True)
+            
             disp = plotting.plot_img(mean_func,cut_coords=(6,16,-10),title=f'sub-{subj} - ses-{ses} \nmean BOLD',cmap="gray")
             disp.add_contours(nib.load(mask_f))
             disp.add_markers([(6,16,-10)], marker_color='red', marker_size=30)
-            disp.savefig(os.path.join(f'rsTMS_pipeline/figures/sub-{subj}/ses-{ses}', f'sub-{subj}_ses-{ses}_meanbold.png'))
+            disp.savefig(os.path.join(FIGS_PATH, f'sub-{subj}/ses-{ses}', f'sub-{subj}_ses-{ses}_meanbold.png'))
             plotting.show()
             
             sgc_masker,sgc_mask,sgc_mask_noncl = sgc_masking(clean_func,radius_mm=10,seeds_sgc = [(6,16,-10)])
             correlation_img, correlation_map, z_img, z_map = sgc_coorelation_map(mask_f, clean_func, sgc_mask,)
             roi_data, roi_img=dlpfc_masking(clean_func,mask_f,seeds_dlpfc = [(-36,39,43), (-44,40,29), (-41,16,54)])
-            disp_roi(roi_img, mean_func,os.path.join(f'rsTMS_pipeline/figures/sub-{subj}/ses-{ses}', 'sub-{subj}_ses-{ses}_roidlpfc.png'),
+            disp_roi(roi_img, mean_func,os.path.join(FIGS_PATH, f'sub-{subj}/ses-{ses}', 'sub-{subj}_ses-{ses}_roidlpfc.png'),
                      title=f'sub-{subj} - ses-{ses} \nDLPFC ROI (summed seeds)',coords=(-44,40,29)) 
             
             results = []
@@ -226,15 +220,15 @@ for subj in subjects:
                         masked_conn_img, min_voxel_idx, min_z_value, min_mni_coord = min_target_gm(conn_img, roi_img,gm_file)
                     
                     disp_connectivity(masked_conn_img, roi_img,  min_mni_coord,
-                    output_file= os.path.join(f'rsTMS_pipeline/figures/sub-{subj}/ses-{ses}', f'sub-{subj}_ses-{ses}_{stats[stat]}map-{tissue}.png'),
+                    output_file= os.path.join(FIGS_PATH, f'sub-{subj}/ses-{ses}', f'sub-{subj}_ses-{ses}_{stats[stat]}map-{tissue}.png'),
                     title=f'sub-{subj} - ses-{ses} \nSeed-based SGC functional connectivity over {tissues[tissue]}\n{stats[stat]}', 
                     coords=min_mni_coord)
                     project_on_surf(masked_conn_img, hemi='left',threshold=0.0,
                     title=f'sub-{subj} - ses-{ses} \nSeed-based SGC functional connectivity over {tissues[tissue]}\n{stats[stat]}',
-                    output_file = os.path.join(f'rsTMS_pipeline/figures/sub-{subj}/ses-{ses}', f'sub-{subj}_ses-{ses}_{stats[stat]}surf-{tissue}.png'),
+                    output_file = os.path.join(FIGS_PATH, f'sub-{subj}/ses-{ses}', f'sub-{subj}_ses-{ses}_{stats[stat]}surf-{tissue}.png'),
                     mni_coord=(-44,40,29), min_mni_coord=min_mni_coord)
                     distance_mm = plot_target_comparison(min_mni_coord=min_mni_coord,correlation_img=masked_conn_img,mean_func=mean_func,
-                    output_dir=os.path.join(f'rsTMS_pipeline/figures/sub-{subj}/ses-{ses}'),tissue=tissues[tissue], stat=stats[stat], 
+                    output_dir=os.path.join(FIGS_PATH, f'sub-{subj}/ses-{ses}'),tissue=tissues[tissue], stat=stats[stat], 
                     subj=subj,ses=ses,standard_coord=std_coord)
                     
                     coord = tuple(np.round(min_mni_coord).astype(int))
@@ -259,4 +253,4 @@ for subj in subjects:
                         })                  
                     
                     del(masked_conn_img, min_voxel_idx, min_z_value, min_mni_coord)
-            df_run, csv_path = save_targeting_results(results, subj, ses, output_dir=f'rsTMS_pipeline/results/sub-{subj}/ses-{ses}')
+            df_run, csv_path = save_targeting_results(results, subj, ses, output_dir=os.path.join(RES_PATH, f'sub-{subj}/ses-{ses}'))
