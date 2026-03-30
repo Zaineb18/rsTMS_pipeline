@@ -85,7 +85,9 @@ import pandas as pd
 
 
 tms_opt = opt_struct.TMSoptimize()
-
+optim_orientation = False
+toward_occip = (-46, 10, 36)
+toward_front = (-46,82,36)
 for subject in subjects:
     for session in sessions: 
         results_file = os.path.join(RES_PATH, f'sub-{subject}', f'ses-{session}',
@@ -95,13 +97,19 @@ for subject in subjects:
         mni_coords = (int(subset_df['mni_x']), int(subset_df['mni_y']), int(subset_df['mni_z']))
         tms_opt.subpath = os.path.join(CHARM_PATH, f'm2m_sub-{subject}_ses-{session}')
         print(tms_opt.subpath)
-        tms_opt.pathfem = os.path.join(SIMNIBS_PATH, f'sub-{subject}_ses-{session}_tmsoptim')
         os.makedirs(tms_opt.pathfem, exist_ok=True)
         print(tms_opt.pathfem)
         tms_opt.fnamecoil ='/home/zaineb/simnibs/resources/coil_models/Drakaki_BrainStim_2022/MagVenture_Cool-B65.ccd'
-        tms_opt.target = mni2subject_coords(mni_coords, tms_opt.subpath)
+        if optim_orientation:
+            tms_opt.pathfem = os.path.join(SIMNIBS_PATH, f'sub-{subject}_ses-{session}_tmsoptim')
+            tms_opt.target = mni2subject_coords(mni_coords, tms_opt.subpath)
+            tms_opt.method = 'ADM'
+        else: 
+            tms_opt.pathfem = os.path.join(SIMNIBS_PATH, f'sub-{subject}_ses-{session}_tmsoptim_toFront')
+            tms_opt.target = mni2subject_coords(mni_coords, tms_opt.subpath)
+            tms_opt.search_angle = 0
+            tms_opt.pos_ydir = mni2subject_coords(toward_front, tms_opt.subpath)        
         print('Target:', tms_opt.target, 'End Target')
-        tms_opt.method = 'ADM'
         opt_pos=tms_opt.run()
         fn = os.path.join(tms_opt.pathfem, f'sub-{subject}_ses-{session}_opt_pos')
         localite().write(np.squeeze(opt_pos), fn)
