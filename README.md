@@ -293,7 +293,7 @@ following Fox et al. (Biol Psychiatry 2012).
 
 ---
 
-### `targeting/create_localite_target.py` ⚠️ MDD protocol only
+### `targeting/create_localite_target.py`
 
 Computes the optimal TMS coil position and orientation for each subject's
 individualized target using SimNIBS TMSoptimize and the CHARM head model.
