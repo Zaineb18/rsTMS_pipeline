@@ -9,7 +9,7 @@ import pandas as pd
 # ==========================
 # SimNIBS TMS Coil Position Optimisation for Individualized DLPFC Targeting
 #
-# Author: Zaineb Amor
+# Author: Zaineb Amor & Guillaume Goudriet
 #
 # Context:
 #   Once the individualized TMS target MNI coordinate has been identified
