@@ -38,16 +38,18 @@ rsTMS_pipeline/
 
 ## Full pipeline order
 ```
-1. convert_to_bids.sh           ← convert DICOMs to BIDS NIfTI
-2. remove_dummy_scans.py        ← remove non-steady-state volumes
-3. ap_pa.py                     ← generate AP fieldmaps, set IntendedFor
-4. MDD_fmriprep_bash.sh         ← run fMRIPrep (MDD protocol)
-   or SZC_fmriprep_bash.sh      ← run fMRIPrep (SCZ protocol)
-5. denoise.py                   ← confound regression on fMRIPrep output
-6. sgc_dlpfc_connectivity.py    ← SGC–DLPFC connectivity and TMS targeting [MDD only]
+1. convert_to_bids.sh            ← convert DICOMs to BIDS NIfTI
+2. remove_dummy_scans.py         ← remove non-steady-state volumes
+3. ap_pa.py                      ← generate AP fieldmaps, set IntendedFor
+4. MDD_fmriprep_bash.sh          ← run fMRIPrep (MDD protocol)
+   or SZC_fmriprep_bash.sh       ← run fMRIPrep (SCZ protocol)
+5. denoise.py                    ← confound regression on fMRIPrep output
+6. sgc_dlpfc_connectivity.py     ← SGC–DLPFC connectivity and TMS targeting [MDD only]
    (SCZ targeting: BrainVoyager) ← separate pipeline, not included here
-7. h5py2txt.py                  ← export MNI→T1w affine transforms, can also be run in parallel to the targeting
-8. charmtms_bash.sh             ← run SimNIBS CHARM head modelling, can also be run in parallel to the targeting
+7. h5py2txt.py                   ← export MNI→T1w affine transforms, can also be run in parallel to the targeting
+8. charmtms_bash.sh              ← run SimNIBS CHARM head modelling, can also be run in parallel to the targeting
+9. create_localite_target.py     ← coil position optimisation
+
 ```
 ---
 
@@ -288,6 +290,45 @@ following Fox et al. (Biol Psychiatry 2012).
 | `used_fallback` | `True` if no anticorrelated voxel found; Fox coord used |
 
 **Dependencies:** `nilearn`, `scipy`, `nibabel`, `numpy`, `pandas`
+
+---
+
+### `targeting/create_localite_target.py` ⚠️ MDD protocol only
+
+Computes the optimal TMS coil position and orientation for each subject's
+individualized target using SimNIBS TMSoptimize and the CHARM head model.
+
+**Requires:**
+- CHARM head models built by `charmtms_bash.sh` (in `CHARM_PATH`)
+- Targeting results CSVs shoud be in `RES_PATH`
+
+**What it does**, for each subject and session:
+
+1. Reads the individualized target coordinate from the targeting results TSV,
+   selecting the row where `tissue = GM mask` and `stat = Fisher Z`.
+2. Converts the MNI coordinate to subject (T1w) space using
+   `mni2subject_coords()` and the CHARM head model transform.
+3. Configures a `TMSoptimize` object with the subject's head model, the
+   MagVenture Cool-B65 coil definition, and the ADM optimisation method.
+4. Runs the FEM-based coil position optimisation to find the placement that
+   maximises electric field at the target.
+5. Exports the optimal coil matrix to a Localite TMS Navigator-compatible
+   file for use during the clinical TMS session.
+
+**Outputs** saved under `SIMNIBS_PATH/sub-{subject}_ses-{session}_tmsoptim/`:
+
+| File | Content |
+|---|---|
+| SimNIBS FEM outputs | Electric field simulation results (mesh, results files) |
+| `*_opt_pos` | Optimal 4×4 coil-to-head matrix in Localite format |
+
+**Coil:** MagVenture Cool-B65 (figure-of-eight). Update `fnamecoil` in the
+script if a different coil is used.
+
+**Optimisation method:** ADM (Auxiliary Dipole Method) — SimNIBS's recommended
+fast single-target optimisation.
+
+**Dependencies:** `simnibs`, `numpy`, `pandas`
 
 ---
 
