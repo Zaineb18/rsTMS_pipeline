@@ -62,15 +62,14 @@ import pandas as pd
 #
 #   Saves the optimal coil position to a Localite TMS Navigator-compatible
 #   file via localite().write(), at:
-#     SIMNIBS_PATH/sub-{subject}_ses-{session}_tmsoptim/
+#     SIMNIBS_PATH/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_tmsoptim*/
 #       sub-{subject}_ses-{session}_opt_pos
 #   The Localite format encodes the 4×4 coil matrix and can be loaded
 #   directly into the Localite TMS Navigator neuronavigation system
 #   for coil placement during the TMS session.
 #
 # Notes:
-#   - Run charmtms_bash.sh before this script. The CHARM head model
-#     (m2m_sub-{subject}_ses-{session}/) must exist in CHARM_PATH.
+#   - Run charmtms_bash.sh before this script. 
 #   - The targeting results CSV must exist in RES_PATH.
 #   - The coil file path is currently hardcoded to the MagVenture Cool-B65.
 #     Update fnamecoil if a different coil is used.
@@ -83,11 +82,11 @@ import pandas as pd
 #     as localite().write() expects a 2D matrix.
 # ==========================
 
-
 tms_opt = opt_struct.TMSoptimize()
-optim_orientation = False
-toward_occip = (-46, 10, 36)
+optim_orientation = True
+toward_occip = (-46,10,36)
 toward_front = (-46,82,36)
+
 for subject in subjects:
     for session in sessions: 
         results_file = os.path.join(RES_PATH, f'sub-{subject}', f'ses-{session}',
@@ -95,17 +94,18 @@ for subject in subjects:
         df = pd.read_csv(results_file, sep='\t')
         subset_df = df[(df["tissue"] == 'GM mask') & (df["stat"] == 'Fisher Z')]
         mni_coords = (int(subset_df['mni_x']), int(subset_df['mni_y']), int(subset_df['mni_z']))
-        tms_opt.subpath = os.path.join(CHARM_PATH, f'm2m_sub-{subject}_ses-{session}')
-        print(tms_opt.subpath)
-        os.makedirs(tms_opt.pathfem, exist_ok=True)
-        print(tms_opt.pathfem)
+        tms_opt.subpath = os.path.join(CHARM_PATH, f'sub-{subject}', f'ses-{session}', f'm2m_sub-{subject}_ses-{session}')
         tms_opt.fnamecoil ='/home/zaineb/simnibs/resources/coil_models/Drakaki_BrainStim_2022/MagVenture_Cool-B65.ccd'
         if optim_orientation:
-            tms_opt.pathfem = os.path.join(SIMNIBS_PATH, f'sub-{subject}_ses-{session}_tmsoptim')
+            tms_opt.pathfem = os.path.join(SIMNIBS_PATH,f'sub-{subject}/ses-{session}',
+                                           f'sub-{subject}_ses-{session}_tmsoptim')
+            os.makedirs(tms_opt.pathfem, exist_ok=True)
             tms_opt.target = mni2subject_coords(mni_coords, tms_opt.subpath)
             tms_opt.method = 'ADM'
         else: 
-            tms_opt.pathfem = os.path.join(SIMNIBS_PATH, f'sub-{subject}_ses-{session}_tmsoptim_toFront')
+            tms_opt.pathfem = os.path.join(SIMNIBS_PATH,f'sub-{subject}/ses-{session}',
+                                           f'sub-{subject}_ses-{session}_tmsoptim_toFront')
+            os.makedirs(tms_opt.pathfem, exist_ok=True)
             tms_opt.target = mni2subject_coords(mni_coords, tms_opt.subpath)
             tms_opt.search_angle = 0
             tms_opt.pos_ydir = mni2subject_coords(toward_front, tms_opt.subpath)        

@@ -24,51 +24,44 @@ fi
 cd $charm_dir
 
 # Iterate over directories that match the pattern
-#for dir in $(find "$parent_dir" -maxdepth 1 -type d -name "$dir_pattern")
-for dir in $(find "$parent_dir" -type d -path "$parent_dir/$dir_pattern") 
+#for dir in $(find "$parent_dir" -type d -path "$parent_dir/$dir_pattern") 
+for dir in $(find "$parent_dir" -mindepth 2 -maxdepth 2 -type d -name "ses-*")
 do
 	echo "Looking for T1w file in $dir"
-	#file=$(find "$dir" -type f -name "$file_pattern" | grep -v 'space')
 	file=$(find "$dir" -type f -name "$file_pattern" | grep -v 'space')
         echo "The file found is $file"	
 	# Check if the file exists
 	if [ -n "$file" ]; then
 		# Store the directory name (not full path) as a variable
-		#dir_name=$(basename "$dir")
-		dir_name=$(basename "$(dirname "$dir")")_$(basename "$dir") 
+		#dir_name=$(basename "$(dirname "$dir")")_$(basename "$dir") 
+		sub=$(basename "$(dirname "$dir")")
+		ses=$(basename "$dir")
+		dir_name="${sub}_${ses}"
+		out_dir="$charm_dir/$sub/$ses"
+		mkdir -p "$out_dir"
 		echo "T1w file found: checking if head modelling was fully performed for $dir_name"
-		# model_log=$(find  "$charm_dir/m2m_$dir_name" -maxdepth 1 -type f -name "charm_report.html")
-		# if [ -z "$model_log" ]; then
 		model_msh=$(find  "$charm_dir/m2m_$dir_name" -maxdepth 1 -type f -name "$dir_name.msh")
+		#model_msh=$(find "$out_dir" -maxdepth 1 -type f -name "$dir_name.msh")
 		if [ -z "$model_msh" ]; then
-		#model_surf=$(find "$charm_dir/m2m_$dir_name/surfaces" -maxdepth 1 -type f -name "lh.central.gii")
-		#if [ -z "$model_surf" ]; then
 			file_name=$(basename "$file")
 			echo "Head model absent or incomplete: looking for matching freesurfer folder: $file_name"
-                	# Look for pre-existing freesurfer output
-			#FS_DIR=$(find "$fs_dir" -maxdepth 1 -type d -name "$dir_name")
 			FS_DIR=$(find "$fs_dir" -maxdepth 1 -type d -name "$(basename "$(dirname "$dir")")")
 			echo "fsdir $FS_DIR"
-
 			if [ -d "$FS_DIR" ]; then
 				echo "Freesurfer folder found: $FS_DIR, looking for ANTs MNI to T1w transform in $dir"
-				#TRANSFORM=$(find "$dir" -type f -name "$transform_pattern")
 				txt_transform_dir="${transform_dir}$(basename "$(dirname "$dir")")/$(basename "$dir")"
 				TRANSFORM=$(find "$txt_transform_dir" -type f -name "*.txt")
 			        echo "transform $TRANSFORM $h5_transform_dir"	
 				if [ -n "$TRANSFORM" ]; then
 					echo "ANTs MNI to T1w transform found: $TRANSFORM"
 					echo "Running charm_tms on file $file_name"
-					#charm_tms "$dir_name" --mesh
-					charm_tms "$dir_name" "$file" --inittransform $TRANSFORM --fs-dir $FS_DIR --forcerun
-					#--forceqform 
+					charm_tms "$dir_name" "$file" --inittransform "$TRANSFORM" --fs-dir "$FS_DIR" --forcerun
+					mv "$charm_dir/m2m_$dir_name" "$charm_dir/$sub/$ses/"					
 					echo " "
 				else
 					echo "ANTs MNI to T1w transform not found, moving onto next subject"
 					echo " "
-					#continue
 				fi
-
 			else
 				echo "Freesurfer folder not found, moving onto next subject"
 				echo " "
@@ -79,7 +72,6 @@ do
 		fi
 	else
 		echo "File not found in directory: $dir , moving onto next subject"
-	    	# Store the name of the directory where the file was not found
 	    	echo "$dir" >> "$not_found_log"
 		echo " "
 	fi

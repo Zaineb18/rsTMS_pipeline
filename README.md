@@ -315,7 +315,7 @@ individualized target using SimNIBS TMSoptimize and the CHARM head model.
 5. Exports the optimal coil matrix to a Localite TMS Navigator-compatible
    file for use during the clinical TMS session.
 
-**Outputs** saved under `SIMNIBS_PATH/sub-{subject}_ses-{session}_tmsoptim/`:
+**Outputs** saved under `SIMNIBS_PATH/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_tmsoptim*/`:
 
 | File | Content |
 |---|---|
