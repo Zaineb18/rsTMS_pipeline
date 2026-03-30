@@ -304,8 +304,6 @@ head model.
 - Targeting results CSVs produced by `sgc_dlpfc_connectivity.py`
   (expected at `RES_PATH/sub-{subject}/ses-{session}/*_targeting-results.csv`)
 
----
-
 #### Configuration flag: `optim_orientation`
 
 Set this flag at the top of the script to switch between two optimisation modes:
@@ -321,8 +319,6 @@ Two reference direction constants are defined for the fixed-orientation mode:
 toward_occip = (-46, 10, 36)   # handle pointing posteriorly
 toward_front = (-46, 82, 36)   # handle pointing anteriorly
 ```
----
-
 **What it does**, for each subject and session:
 
 1. Reads the targeting results TSV and extracts the MNI coordinate
@@ -340,8 +336,6 @@ toward_front = (-46, 82, 36)   # handle pointing anteriorly
 4. Runs `tms_opt.run()` to obtain the optimal 4×4 coil-to-head matrix.
 5. Exports the matrix to a Localite TMS Navigator-compatible file via
    `localite().write()` for use during the clinical TMS session.
-
----
 
 **Outputs** saved under
 `SIMNIBS_PATH/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_tmsoptim_{mode}/`:
