@@ -267,7 +267,6 @@ following Fox et al. (Biol Psychiatry 2012).
 | `*_{stat}map-{tissue}.png` | SGC connectivity map with ROI contour and target marker |
 | `*_{stat}surf-{tissue}.png` | Left hemisphere surface projection |
 | `*_target-comparison-vol_{stat}map-{tissue}.png` | 4-panel volume comparison: individual vs Fox standard |
-| `*_target-comparison-surf_{stat}map-{tissue}.png` | Surface comparison: individual vs Fox standard |
 
 **Results** saved under `rsTMS_pipeline/results/sub-XX/ses-XX/`:
 
@@ -295,38 +294,65 @@ following Fox et al. (Biol Psychiatry 2012).
 
 ### `targeting/create_localite_target.py`
 
-Computes the optimal TMS coil position and orientation for each subject's
-individualized target using SimNIBS TMSoptimize and the CHARM head model.
+Computes the optimal TMS coil position (and optionally orientation) for each
+subject's individualized DLPFC target using SimNIBS TMSoptimize and the CHARM
+head model.
 
 **Requires:**
-- CHARM head models built by `charmtms_bash.sh` (in `CHARM_PATH`)
-- Targeting results CSVs shoud be in `RES_PATH`
+- CHARM head models built by `charmtms_bash.sh`
+  (expected at `CHARM_PATH/sub-{subject}/ses-{session}/m2m_sub-{subject}_ses-{session}/`)
+- Targeting results CSVs produced by `sgc_dlpfc_connectivity.py`
+  (expected at `RES_PATH/sub-{subject}/ses-{session}/*_targeting-results.csv`)
+
+---
+
+#### Configuration flag: `optim_orientation`
+
+Set this flag at the top of the script to switch between two optimisation modes:
+
+| `optim_orientation` | Mode | Method | Search space | Output folder |
+|---|---|---|---|---|
+| `True` | Full: position + orientation | ADM | ~2.1M configs | `*_tmsoptim/` |
+| `False` | Position only, fixed orientation | Grid search | ~5,900 configs | `*_tmsoptim_toOccip/` |
+| `False` | Position only, fixed orientation | Grid search | ~5,900 configs | `*_tmsoptim_toFront/` |
+
+Two reference direction constants are defined for the fixed-orientation mode:
+```python
+toward_occip = (-46, 10, 36)   # handle pointing posteriorly
+toward_front = (-46, 82, 36)   # handle pointing anteriorly
+```
+---
 
 **What it does**, for each subject and session:
 
-1. Reads the individualized target coordinate from the targeting results TSV,
-   selecting the row where `tissue = GM mask` and `stat = Fisher Z`.
-2. Converts the MNI coordinate to subject (T1w) space using
-   `mni2subject_coords()` and the CHARM head model transform.
-3. Configures a `TMSoptimize` object with the subject's head model, the
-   MagVenture Cool-B65 coil definition, and the ADM optimisation method.
-4. Runs the FEM-based coil position optimisation to find the placement that
-   maximises electric field at the target.
-5. Exports the optimal coil matrix to a Localite TMS Navigator-compatible
-   file for use during the clinical TMS session.
+1. Reads the targeting results TSV and extracts the MNI coordinate
+   where `tissue = GM mask` and `stat = Fisher Z`.
+2. Converts the MNI coordinate to subject (T1w) space via
+   `mni2subject_coords()` using the CHARM m2m transform.
+3. Configures `TMSoptimize` according to `optim_orientation`:
+   - **True** — sets `method = 'ADM'`. ADM uses electromagnetic reciprocity
+     (single FEM solve at the target) and fast multipole acceleration to
+     evaluate all 2.1M position × orientation configurations in under 15 min.
+   - **False** — sets `search_angle = 0` and `pos_ydir` to the
+     `toward_occip` or `toward_front` reference point in subject space. 
+     Only scalp position is searched; ADM is not used (ADM requires the full
+     360° orientation sweep to function correctly; grid search is used instead).
+4. Runs `tms_opt.run()` to obtain the optimal 4×4 coil-to-head matrix.
+5. Exports the matrix to a Localite TMS Navigator-compatible file via
+   `localite().write()` for use during the clinical TMS session.
 
-**Outputs** saved under `SIMNIBS_PATH/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_tmsoptim*/`:
+---
+
+**Outputs** saved under
+`SIMNIBS_PATH/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_tmsoptim_{mode}/`:
 
 | File | Content |
 |---|---|
-| SimNIBS FEM outputs | Electric field simulation results (mesh, results files) |
-| `*_opt_pos` | Optimal 4×4 coil-to-head matrix in Localite format |
+| SimNIBS FEM outputs | Electric field simulation mesh and results |
+| `*_opt_pos` | Optimal 4×4 coil matrix in Localite format |
 
-**Coil:** MagVenture Cool-B65 (figure-of-eight). Update `fnamecoil` in the
-script if a different coil is used.
-
-**Optimisation method:** ADM (Auxiliary Dipole Method) — SimNIBS's recommended
-fast single-target optimisation.
+**Coil:** MagVenture Cool-B65 (figure-of-eight). Path is hardcoded —
+update `fnamecoil` if the coil or SimNIBS installation changes.
 
 **Dependencies:** `simnibs`, `numpy`, `pandas`
 

@@ -7,19 +7,39 @@ import numpy as np
 import pandas as pd
 
 # ==========================
-# SimNIBS TMS Coil Position Optimisation for Individualized Targeting
+# SimNIBS TMS Coil Position Optimisation for Individualized DLPFC Targeting
 #
-# Author: Zaineb Amor & Guillaume Coudriet
+# Author: Zaineb Amor
 #
 # Context:
-#   Once the individualized target MNI coordinate has been identified,
-#   the optimal TMS coil position and orientation must be computed to maximally
-#   stimulate that cortical target given the individual subject's head anatomy.
-#   This script uses SimNIBS TMSoptimize to solve that problem, using the
-#   CHARM head model built from each subject's fMRIPrep T1w image.
+#   Once the individualized TMS target MNI coordinate has been identified
+#   from functional connectivity analysis, the optimal TMS coil position and orientation
+#   must be computed to maximally stimulate that cortical target given the
+#   individual subject's head anatomy. This script uses SimNIBS TMSoptimize
+#   to solve that problem, using the CHARM head model built from each
+#   subject's fMRIPrep T1w image.
 #
 #   The coil used is the MagVenture Cool-B65 (figure-of-eight), a standard
 #   clinical coil used in MDD TMS protocols.
+#
+# --- Configuration flag ---
+#
+#   optim_orientation : bool
+#     Controls whether coil orientation is optimised jointly with position,
+#     or fixed to a predefined anatomical direction.
+#
+#     True  → Full optimisation (position + orientation).
+#             Uses the ADM method (Auxiliary Dipole Method).
+#             Searches ~2.1 million configurations (5,900 positions ×
+#             360 orientations). Recommended when maximum E-field at the
+#             target is the priority. 
+#     False → Position-only optimisation (fixed orientation).
+#             Orientation is fixed with the coil handle pointing toward
+#             the occipital lobe = (-46, 10, 36) or frontal lobe = (-46,82,36) in 
+#             MNI space. Sets search_angle = 0 so only
+#             scalp position is searched (~5,900 configurations).
+#             Uses the SimNIBS grid search method (ADM is not compatible
+#             with fixed-orientation search).
 #
 # This script loops over all subjects and sessions. For each, it:
 #
@@ -28,58 +48,81 @@ import pandas as pd
 #   Reads the targeting results TSV from:
 #     RES_PATH/sub-{subject}/ses-{session}/
 #       sub-{subject}_ses-{session}_targeting-results.csv
+#
 #   Filters to the row where:
 #     - tissue == 'GM mask'   (most anatomically precise restriction)
 #     - stat   == 'Fisher Z'  (most statistically appropriate metric)
+#
 #   Extracts mni_x, mni_y, mni_z as integer MNI coordinates.
 #
 # --- Step 2: Configure SimNIBS TMSoptimize ---
 #
 #   Sets up a TMSoptimize object with the following fields:
-#   subpath   — path to the subject's CHARM head model directory
-#               (m2m_sub-{subject}_ses-{session}), built by charmtms_bash.sh
-#   pathfem   — output directory for the FEM simulation results
-#               (created if it does not exist)
+#
+#   subpath   — path to the subject's CHARM head model directory:
+#               CHARM_PATH/sub-{subject}/ses-{session}/
+#                 m2m_sub-{subject}_ses-{session}/
+#               built by charmtms_bash.sh
 #   fnamecoil — path to the MagVenture Cool-B65 coil definition file (.ccd),
-#               located in the SimNIBS coil model library
+#               located in the SimNIBS coil model library.
+#               Update this path if the coil or SimNIBS installation changes.
+#   pathfem   — output directory for the FEM simulation results.
+#               Name reflects the optimisation mode:
+#                 *_tmsoptim          → full optimisation (optim_orientation=True)
+#                 *_tmsoptim_toOccip  → position-only, handle toward occipital
+#                                       pole (optim_orientation=False)
+#                 *_tmsoptim_toFront  → position-only, handle toward frontal
+#                                       pole (optim_orientation=False)
 #   target    — individualized cortical target in subject (T1w) space,
-#               converted from MNI to subject coordinates via
-#               mni2subject_coords(), which applies the inverse MNI→T1w
-#               transform stored in the CHARM head model
-#   method    — 'ADM' (Auxiliary Dipole Method), SimNIBS's recommended
-#               fast optimisation method for single-target coil placement
+#               converted from MNI via mni2subject_coords(), which applies
+#               the inverse MNI→T1w transform stored in the CHARM m2m
+#               directory.
+
+#   If optim_orientation is True (full optimisation):
+#     method = 'ADM'  — Auxiliary Dipole Method. Leverages electromagnetic
+#                       reciprocity and fast multipole acceleration to
+#                       evaluate all 2.1M configurations from a single
+#                       FEM solve in <15 minutes on a standard laptop.
+#
+#   If optim_orientation is False (position-only):
+#     search_angle = 0     — disables angular sweep; single orientation only
+#     pos_ydir             — MNI reference point converted to subject space,
+#                            defining the coil handle (y-axis) direction.
+#     method               — grid search (ADM is not compatible with fixed
+#                            orientation; ADM requires the full 360-degree
+#                            orientation sweep to function correctly)
 #
 # --- Step 3: Run coil position optimisation ---
 #
 #   Calls tms_opt.run(), which:
-#     1. Loads the CHARM head model mesh
-#     2. Runs ADM optimisation to find the coil position and orientation
-#        that maximises the electric field magnitude at the target coordinate
-#     3. Returns opt_pos: the optimal 4×4 coil-to-head affine matrix
-#        (position + orientation)
+#     1. Loads the CHARM head model mesh.
+#     2. Runs the selected optimisation (ADM or grid search) to find the
+#        coil position (and optionally orientation) that maximises the
+#        electric field magnitude at the target coordinate.
+#     3. Returns opt_pos: the optimal 4×4 coil-to-head affine matrix.
 #
 # --- Step 4: Export coil position for neuronavigation ---
 #
 #   Saves the optimal coil position to a Localite TMS Navigator-compatible
-#   file via localite().write(), at:
-#     SIMNIBS_PATH/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_tmsoptim*/
-#       sub-{subject}_ses-{session}_opt_pos
-#   The Localite format encodes the 4×4 coil matrix and can be loaded
-#   directly into the Localite TMS Navigator neuronavigation system
-#   for coil placement during the TMS session.
+#   file via localite().write() at:
+#     tms_opt.pathfem / sub-{subject}_ses-{session}_opt_pos
+#
+#   np.squeeze() reduces opt_pos from shape (1,4,4) to (4,4) as required
+#   by localite().write(). The Localite file encodes the 4×4 coil matrix
+#   and can be loaded directly into the Localite TMS Navigator
+#   neuronavigation system for coil placement during the TMS session.
 #
 # Notes:
 #   - Run charmtms_bash.sh before this script. 
 #   - The targeting results CSV must exist in RES_PATH.
-#   - The coil file path is currently hardcoded to the MagVenture Cool-B65.
-#     Update fnamecoil if a different coil is used.
 #   - tms_opt is instantiated once outside the loop and reused across
 #     subjects and sessions. Fields are overwritten at each iteration.
-#   - mni2subject_coords() requires the CHARM m2m directory to resolve
-#     the MNI→T1w transform. Ensure the correct m2m path is set before
-#     calling it.
-#   - opt_pos is squeezed from shape (1, 4, 4) to (4, 4) before writing,
-#     as localite().write() expects a 2D matrix.
+#   - The coil path is currently hardcoded. Update fnamecoil if the
+#     SimNIBS installation path or coil model changes.
+#   - To switch between full and position-only optimisation, change only
+#     the optim_orientation flag at the top of the script.
+#   - To use an anteriorly-directed handle instead, replace toward_occip
+#     with toward_front in the pos_ydir assignment.
 # ==========================
 
 tms_opt = opt_struct.TMSoptimize()
