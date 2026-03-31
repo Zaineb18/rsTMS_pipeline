@@ -49,7 +49,6 @@ rsTMS_pipeline/
 7. h5py2txt.py                   ← export MNI→T1w affine transforms, can also be run in parallel to the targeting
 8. charmtms_bash.sh              ← run SimNIBS CHARM head modelling, can also be run in parallel to the targeting
 9. create_localite_target.py     ← coil position optimisation
-
 ```
 ---
 
