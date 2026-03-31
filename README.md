@@ -301,8 +301,8 @@ head model.
 **Requires:**
 - CHARM head models built by `charmtms_bash.sh`
   (expected at `CHARM_PATH/sub-{subject}/ses-{session}/m2m_sub-{subject}_ses-{session}/`)
-- Targeting results CSVs produced by `sgc_dlpfc_connectivity.py`
-  (expected at `RES_PATH/sub-{subject}/ses-{session}/*_targeting-results.csv`)
+- Targeting results CSVs (expected at 
+  `RES_PATH/sub-{subject}/ses-{session}/*_targeting-results.csv`)
 
 #### Configuration flag: `optim_orientation`
 
