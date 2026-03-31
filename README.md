@@ -383,12 +383,15 @@ rawdata/
     └── ses-<label>/
         ├── anat/
         │   └── sub-<label>_ses-<label>_T1w.nii.gz
+        │   └── sub-<label>_ses-<label>_T2w.nii.gz
         ├── func/
         │   └── sub-<label>_ses-<label>_task-restingstate_bold.nii.gz
         │   └── sub-<label>_ses-<label>_task-restingstate_bold.json
         └── fmap/
             └── sub-<label>_ses-<label>_dir-PA_epi.nii.gz
             └── sub-<label>_ses-<label>_dir-PA_epi.json
+            └── sub-<label>_ses-<label>_dir-AP_epi.nii.gz
+            └── sub-<label>_ses-<label>_dir-AP_epi.json
 ```
 
 Subjects, sessions, and all directory paths are configured in `data_loading/params.py`.
