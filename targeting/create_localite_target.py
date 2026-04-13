@@ -3,6 +3,8 @@ from rsTMS_pipeline.data_loading.loading_utils import *
 import os
 from simnibs import opt_struct, mni2subject_coords
 from simnibs import localite
+import simnibs.msh.mesh_io as mesh_io
+from simnibs.utils.simnibs_utils import get_field_at_target
 import numpy as np
 import pandas as pd
 
@@ -129,7 +131,6 @@ tms_opt = opt_struct.TMSoptimize()
 optim_orientation = True
 toward_occip = (-46,10,36)
 toward_front = (-46,82,36)
-
 for subject in subjects:
     for session in sessions: 
         results_file = os.path.join(RES_PATH, f'sub-{subject}', f'ses-{session}',

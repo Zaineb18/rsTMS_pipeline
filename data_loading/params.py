@@ -29,7 +29,7 @@ if proto=="SCZ":
 elif proto=="MDD":
     DATA_DIR = "/home/zamor/Documents/rTMS_DomenechAmor_2025/DomenechAmor_MDDrsTMS_2026/anonym_data"
     space = "MNI152NLin2009cAsym"
-    subjects = ['OUVfre']
+    subjects = ['BERoum']
     sessions = [1]
     RAW_PATH = os.path.join(DATA_DIR, 'rawdata')
     SOURCE_PATH = os.path.join(DATA_DIR, 'sourcedata')

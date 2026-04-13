@@ -4,6 +4,124 @@ A Python pipeline for preprocessing and targeting resting-state fMRI data in the
 
 ---
 
+## Dependencies
+
+All dependencies must be installed before running any part of the pipeline.
+
+### Python (≥ 3.9)
+
+Install all Python packages in one command:
+
+```bash
+pip install nibabel nilearn h5py json5 numpy scipy pandas matplotlib
+```
+
+| Package | Version | Used by |
+|---|---|---|
+| `nibabel` | any | `remove_dummy_scans.py`, `ap_pa.py`, `sgc_dlpfc_connectivity.py` |
+| `nilearn` | any | `denoise.py`, `sgc_dlpfc_connectivity.py` |
+| `numpy` | any | `h5py2txt.py`, `sgc_dlpfc_connectivity.py`, `create_localite_target.py` |
+| `scipy` | any | `sgc_dlpfc_connectivity.py` |
+| `pandas` | any | `sgc_dlpfc_connectivity.py`, `create_localite_target.py` |
+| `matplotlib` | any | `plotting_utils.py` |
+| `h5py` | any | `h5py2txt.py` |
+| `json5` | any | `ap_pa.py` |
+
+---
+
+### dcm2niix — v1.0.20211006
+
+> **⚠️ Use this exact version.** Newer releases (e.g. v1.0.20241211) fail to extract `EffectiveEchoSpacing` and `TotalReadoutTime` from GE SIGNA Premier data, causing fMRIPrep to crash during fieldmap estimation.
+
+Download the pre-compiled binary for your OS from the [v1.0.20211006 release page](https://github.com/rordenlab/dcm2niix/releases/tag/v1.0.20211006), then place it where the pipeline expects it:
+
+```bash
+# Linux example
+wget https://github.com/rordenlab/dcm2niix/releases/download/v1.0.20211006/dcm2niix_lnx.zip
+unzip dcm2niix_lnx.zip
+mv dcm2niix /home/team/dcm2niix        # path expected by convert_to_bids.sh
+chmod +x /home/team/dcm2niix
+```
+
+Verify:
+```bash
+/home/team/dcm2niix --version          # should print v1.0.20211006
+```
+
+---
+
+### Singularity
+
+Required to run fMRIPrep. Install via your system package manager or from the [Singularity docs](https://docs.sylabs.io/guides/latest/user-guide/quick_start.html):
+
+```bash
+# Ubuntu / Debian
+sudo apt-get install -y singularity-container
+
+# Or via conda
+conda install -c conda-forge singularity
+```
+
+Verify:
+```bash
+singularity --version
+```
+
+---
+
+### fMRIPrep 23.2.1 (Singularity image)
+
+Pull the image once and store it at the path referenced in the fMRIPrep scripts:
+
+```bash
+singularity pull fmriprep-23.2.1.simg docker://nipreps/fmriprep:23.2.1
+mv fmriprep-23.2.1.simg /home/team/FMRIPREP/fmriprep-23.2.1.simg
+```
+
+---
+
+### FreeSurfer license
+
+fMRIPrep requires a valid FreeSurfer license file. Register for free at [surfer.nmr.mgh.harvard.edu](https://surfer.nmr.mgh.harvard.edu/registration.html) to obtain `license.txt`, then place it at:
+
+```
+/home/team/freesurfer/7.4.1/license.txt
+```
+
+No installation of FreeSurfer itself is needed — fMRIPrep uses its bundled copy.
+
+---
+
+### SimNIBS (for head modelling and TMS targeting)
+
+SimNIBS cannot be installed via pip. Download the installer from the [SimNIBS website](https://simnibs.github.io/simnibs/build/html/installation/simnibs_installer.html):
+
+```bash
+# Download and run the installer (Linux)
+wget https://github.com/simnibs/simnibs/releases/latest/download/simnibs_installer_linux.tar.gz
+tar -xzf simnibs_installer_linux.tar.gz
+./simnibs_installer/install      # follow the prompts
+```
+
+After installation, add SimNIBS to your PATH (the installer will print the exact line to add to your `~/.bashrc`):
+
+```bash
+export PATH="/path/to/simnibs/bin:$PATH"
+source ~/.bashrc
+```
+
+Verify:
+```bash
+charm_tms --version
+```
+
+The `simnibs` Python package is installed automatically alongside SimNIBS and is available in its bundled Python environment. Run targeting scripts using that environment:
+
+```bash
+simnibs_python create_localite_target.py
+```
+---
+
 ## Repository Structure
 ```
 rsTMS_pipeline/
@@ -64,15 +182,17 @@ bash data_loading/bin/convert_to_bids.sh /path/to/rTMS_data
 ```
 
 **What it does:**
-- Expects sourcedata organised as `sourcedata/sub-*/<hash>/<series>/Unknown Study/`
+- Expects sourcedata organised as `sourcedata/sub-*/ses-*/<hash>/<series>/`
 - Infers the BIDS folder and suffix for each series from the series name (case-insensitive matching on `t1`, `t2`, `invpe`, `bold`)
 - Converts matching series using `dcm2niix` (`-z y` for gzip NIfTI output)
 - Outputs to `rawdata/sub-*/ses-1/{anat,fmap,func}/`
+- Handles two DICOM layouts automatically: DICOMs sitting directly in the series folder, or nested one level deeper inside a study subdirectory (e.g. `Unknown Study/`)
 - Skips series with no DICOM files or no recognised BIDS match, with informative warnings
 - Does not abort on individual series failures (`set +e`) so the full dataset is processed even if some series fail
 
-**Dependencies:** `dcm2niix`
+> **dcm2niix version:** Use **v1.0.20211006** specifically. Newer versions (e.g. v1.0.20241211) have been observed to fail to extract readout timing fields (`EffectiveEchoSpacing`, `TotalReadoutTime`) from GE SIGNA Premier data, which causes fMRIPrep to crash during fieldmap estimation. Download the correct binary from the [dcm2niix releases page](https://github.com/rordenlab/dcm2niix/releases/tag/v1.0.20211006) and place it at `/home/team/dcm2niix` (the path used by the script).
 
+**Dependencies:** `dcm2niix` v1.0.20211006
 ---
 
 ### `params.py`
@@ -140,17 +260,22 @@ Generates AP (anterior-posterior) fieldmaps from BOLD data and sets the `Intende
 
 Bash scripts that run [fMRIPrep](https://fmriprep.org) via Singularity for each protocol.
 
-Both scripts loop over subjects and sessions and call fMRIPrep 23.2.1 with the following shared options:
+Both scripts call fMRIPrep 23.2.1 with the following shared options:
 - Output spaces: `func`, `anat`, `MNI152NLin2009cAsym`, `fsnative`
 - FreeSurfer license mounted read-only
 - `--skip_bids_validation`
-- Working directory cleaned up after each run
+- Working directory cleaned up after each run (`rm -rf tmp/*`)
+
+**MDD script — subject selection logic:**
+
+Rather than looping over a hardcoded subject list, `MDD_fmriprep_bash.sh` automatically discovers all `sub-*` directories in `rawdata/` and skips any subject whose output directory already exists and is non-empty under `derivatives/fmriprep/`. All remaining subjects are batched into a single fMRIPrep call using `--participant-label`, which is more efficient than one container invocation per subject. This means the script is safe to re-run after a partial failure — already-preprocessed subjects will be skipped automatically.
 
 **Protocol differences:**
 
 | | MDD | SCZ |
 |---|---|---|
 | Script | `MDD_fmriprep_bash.sh` | `SZC_fmriprep_bash.sh` |
+| Subject selection | Auto-detect unprocessed from `rawdata/` | Hardcoded list |
 | Fieldmap correction | Uses AP/PA fieldmaps (generated by `ap_pa.py`) | `--ignore fieldmaps` (fieldmaps not acquired) |
 | Multi-echo | — | `--me-t2s-fit-method curvefit` (multi-echo acquisition) |
 
@@ -160,7 +285,7 @@ bash preproc/bin/MDD_fmriprep_bash.sh
 bash preproc/bin/SZC_fmriprep_bash.sh
 ```
 
-Update the subject/session lists and directory paths at the top of each script before running.
+Update the directory paths (`RAWDATA`, `DERIVATIVES`, `TMPDIR`) at the top of each script before running. For the MDD script, no subject list needs to be maintained — it is derived automatically.
 
 **Dependencies:** Singularity, fMRIPrep 23.2.1 `.simg`, FreeSurfer license
 
@@ -348,28 +473,6 @@ toward_front = (-46, 82, 36)   # handle pointing anteriorly
 update `fnamecoil` if the coil or SimNIBS installation changes.
 
 **Dependencies:** `simnibs`, `numpy`, `pandas`
-
----
-
-## Requirements
-
-- Python ≥ 3.9
-- [nibabel](https://nipy.org/nibabel/)
-- [nilearn](https://nilearn.github.io/)
-- [h5py](https://www.h5py.org/)
-- [json5](https://pypi.org/project/json5/)
-- [numpy](https://numpy.org/)
-
-Install Python dependencies:
-```bash
-pip install nibabel nilearn h5py json5 numpy
-```
-
-External tools (must be installed separately):
-- [dcm2niix](https://github.com/rordenlab/dcm2niix) — DICOM conversion
-- [fMRIPrep 23.2.1](https://fmriprep.org) via Singularity
-- [SimNIBS](https://simnibs.github.io/simnibs/) — head modelling (`charm_tms`)
-- FreeSurfer license file
 
 ---
 
