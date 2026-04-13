@@ -4,6 +4,39 @@ A Python pipeline for preprocessing and targeting resting-state fMRI data in the
 
 ---
 
+## Repository Structure
+```
+rsTMS_pipeline/
+├── data_loading/           # Parameters and utilities for loading BIDS data
+│   ├── params.py           # Protocol-specific paths and subject/session lists
+│   ├── loading_utils.py    # Functions to locate NIfTI files at each pipeline stage
+│   └── bin/
+│       └── convert_to_bids.sh  # DICOM → NIfTI + BIDS organisation
+├── preproc/                # Preprocessing scripts
+│   ├── remove_dummy_scans.py
+│   ├── ap_pa.py
+│   ├── denoise.py
+│   ├── h5py2txt.py
+│   ├── preproc_utils.py
+│   └── bin/
+│       ├── MDD_fmriprep_bash.sh
+│       ├── SZC_fmriprep_bash.sh
+│       └── charmtms_bash.sh
+├── targeting/              # Functional connectivity and TMS target identification
+│   ├── sgc_dlpfc_connectivity.py
+│   ├── create_localite_target.py
+│   └── targeting_utils.py
+├── plotting/               # Visualisation utilities
+│   └── plotting_utils.py
+├── notebooks/              # Exploratory and demonstration notebooks
+│   ├── example_MDD.ipynb
+│   ├── example_SCZ.ipynb
+│   └── target_stability.ipynb
+└── __init__.py
+```
+
+---
+
 ## Dependencies
 
 All dependencies must be installed before running any part of the pipeline.
@@ -31,7 +64,7 @@ pip install nibabel nilearn h5py json5 numpy scipy pandas matplotlib
 
 ### dcm2niix — v1.0.20211006
 
-> **⚠️ Use this exact version.** Newer releases (e.g. v1.0.20241211) fail to extract `EffectiveEchoSpacing` and `TotalReadoutTime` from GE SIGNA Premier data, causing fMRIPrep to crash during fieldmap estimation.
+> **Use this exact version.** Newer releases (e.g. v1.0.20241211) fail to extract `EffectiveEchoSpacing` and `TotalReadoutTime` from GE SIGNA Premier data, causing fMRIPrep to crash during fieldmap estimation.
 
 Download the pre-compiled binary for your OS from the [v1.0.20211006 release page](https://github.com/rordenlab/dcm2niix/releases/tag/v1.0.20211006), then place it where the pipeline expects it:
 
@@ -119,38 +152,6 @@ The `simnibs` Python package is installed automatically alongside SimNIBS and is
 
 ```bash
 simnibs_python create_localite_target.py
-```
----
-
-## Repository Structure
-```
-rsTMS_pipeline/
-├── data_loading/           # Parameters and utilities for loading BIDS data
-│   ├── params.py           # Protocol-specific paths and subject/session lists
-│   ├── loading_utils.py    # Functions to locate NIfTI files at each pipeline stage
-│   └── bin/
-│       └── convert_to_bids.sh  # DICOM → NIfTI + BIDS organisation
-├── preproc/                # Preprocessing scripts
-│   ├── remove_dummy_scans.py
-│   ├── ap_pa.py
-│   ├── denoise.py
-│   ├── h5py2txt.py
-│   ├── preproc_utils.py
-│   └── bin/
-│       ├── MDD_fmriprep_bash.sh
-│       ├── SZC_fmriprep_bash.sh
-│       └── charmtms_bash.sh
-├── targeting/              # Functional connectivity and TMS target identification
-│   ├── sgc_dlpfc_connectivity.py
-│   ├── create_localite_target.py
-│   └── targeting_utils.py
-├── plotting/               # Visualisation utilities
-│   └── plotting_utils.py
-├── notebooks/              # Exploratory and demonstration notebooks
-│   ├── example_MDD.ipynb
-│   ├── example_SCZ.ipynb
-│   └── target_stability.ipynb
-└── __init__.py
 ```
 ---
 
