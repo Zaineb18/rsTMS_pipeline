@@ -93,7 +93,6 @@ Download the pre-compiled binary for your OS from the [v1.0.20211006 release pag
 wget https://github.com/rordenlab/dcm2niix/releases/download/v1.0.20211006/dcm2niix_lnx.zip
 unzip dcm2niix_lnx.zip
 mv dcm2niix /home/team/dcm2niix        # path expected by convert_to_bids.sh
-chmod +x /home/team/dcm2niix
 ```
 
 Verify:
@@ -188,7 +187,7 @@ charm_tms --version
 
 ## Data Loading (`data_loading/`)
 
-### `anonymize_dicoms.sh`
+### `bin/anonymize_dicoms.sh`
 
 Anonymizes raw DICOM files **in place** within the `sourcedata/` directory, before any conversion to BIDS. This must be run first to ensure no identifying information is carried forward into the NIfTI files or BIDS metadata.
 
@@ -219,7 +218,8 @@ bash data_loading/bin/convert_to_bids.sh /path/to/rTMS_data
 ```
 
 **What it does:**
-- Expects sourcedata organised as `sourcedata/sub-*/ses-*/<hash>/<series>/`
+- Expects sourcedata organised as `sourcedata/sub-*/ses-*/<hash>/<series>/`or 
+`sourcedata/sub-*/ses-*/<series>/`
 - Infers the BIDS folder and suffix for each series from the series name (case-insensitive matching on `t1`, `t2`, `invpe`, `bold`)
 - Converts matching series using `dcm2niix` (`-z y` for gzip NIfTI output)
 - Outputs to `rawdata/sub-*/ses-1/{anat,fmap,func}/`

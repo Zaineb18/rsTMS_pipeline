@@ -3,12 +3,13 @@
 # ==============================================================================
 # DICOM → NIfTI conversion + BIDS organization for rTMS_data
 # ==============================================================================
-# Input  : sourcedata/sub-*/ses-*/<hash>/<series>/
+# Input  : sourcedata/sub-*/<hash>/<series>/Unknown Study/
 # Output : rawdata/sub-*/ses-1/{anat,fmap,func}/
 #
 # Usage  : bash convert_to_bids.sh /media/zaineb/Data/rTMS_data
 # ==============================================================================
 
+# NO set -e : a failed/warned series must not abort the whole script
 set +e
 set +u
 
@@ -35,7 +36,7 @@ echo ""
 # ---------- route series name → folder|suffix ---------------------------------
 bids_info() {
     local name
-    name=$(echo "$1" | tr '[:upper:]' '[:lower:]')
+    name=$(echo "$1" | tr '[:upper:]' '[:lower:]')   # lowercase, no bashism
     verbose "  bids_info() input: '$name'"
     if   echo "$name" | grep -q "t1";    then echo "anat|T1w"
     elif echo "$name" | grep -q "t2";    then echo "anat|T2w"
@@ -71,8 +72,7 @@ convert_series() {
 
     local bids_name="${sub_id}_ses-1_${suffix}"
     log "▶ Converting [$label] → ${bids_name}.nii.gz  ($n_dcm files)"
-
-    cd /home/team/
+    cd /home/team
     ./dcm2niix -z y -f "$bids_name" -o "$out_dir" "$dicom_dir" || true
 
     log "✔ [$label] done → ${out_dir}/${bids_name}.nii.gz"
@@ -87,7 +87,7 @@ log "Scanning sourcedata..."
 echo ""
 
 for sub_src in "${SOURCEDATA}"/sub-*/; do
-    [[ ! -d "$sub_src" ]] && continue
+    if [[ ! -d "$sub_src" ]]; then continue; fi
 
     sub_id=$(basename "$sub_src")
     out_base="${RAWDATA}/${sub_id}/ses-1"
@@ -98,63 +98,48 @@ for sub_src in "${SOURCEDATA}"/sub-*/; do
     log "out     : $out_base"
     echo ""
 
-    for ses_dir in "${sub_src}"ses-*/; do
-        [[ ! -d "$ses_dir" ]] && continue
-        verbose "Session dir: $(basename "$ses_dir")"
+    for hash_dir in "${sub_src}"*/; do
+        if [[ ! -d "$hash_dir" ]]; then continue; fi
+        verbose "Hash dir: $(basename "$hash_dir")"
 
-        for hash_dir in "${ses_dir}"*/; do
-            [[ ! -d "$hash_dir" ]] && continue
-            verbose "Hash dir: $(basename "$hash_dir")"
+        for series_dir in "${hash_dir}"*/; do
+            if [[ ! -d "$series_dir" ]]; then continue; fi
 
-            for series_dir in "${hash_dir}"*/; do
-                [[ ! -d "$series_dir" ]] && continue
+            series_name=$(basename "$series_dir")
+            log "── Series: '$series_name'"
+            verbose "  full path: $series_dir"
 
-                series_name=$(basename "$series_dir")
-                log "── Series: '$series_name'"
-                verbose "  full path: $series_dir"
+            info=$(bids_info "$series_name")
+            verbose "  bids_info result: '$info'"
 
-                info=$(bids_info "$series_name")
-                verbose "  bids_info result: '$info'"
+            if [[ -z "$info" ]]; then
+                warn "  No BIDS match for '$series_name' – skipping."
+                skipped=$((skipped + 1))
+                continue
+            fi
 
-                if [[ -z "$info" ]]; then
-                    warn "  No BIDS match for '$series_name' – skipping."
-                    skipped=$((skipped + 1))
-                    continue
-                fi
+            folder=$(echo "$info" | cut -d'|' -f1)
+            suffix=$(echo "$info" | cut -d'|' -f2)
+            out_dir="${out_base}/${folder}"
 
-                folder=$(echo "$info" | cut -d'|' -f1)
-                suffix=$(echo "$info" | cut -d'|' -f2)
-                out_dir="${out_base}/${folder}"
+            verbose "  folder : $folder"
+            verbose "  suffix : $suffix"
+            verbose "  out_dir: $out_dir"
 
-                verbose "  folder : $folder"
-                verbose "  suffix : $suffix"
-                verbose "  out_dir: $out_dir"
-
-                # Check if DICOMs are directly in series_dir or one level deeper
-                n_dcm_direct=$(find "$series_dir" -maxdepth 1 -type f \( -iname "*.dcm" -o -iname "*.ima" \) | wc -l)
-
-                if [ "$n_dcm_direct" -gt 0 ]; then
-                    # DICOMs sit directly in the series folder
-                    convert_series "$series_dir" "$out_dir" "$series_name" "$sub_id" "$suffix"
-                    total=$((total + 1))
-                else
-                    # DICOMs are inside a study subdirectory (e.g. "Unknown Study/")
-                    found_study=0
-                    for study_dir in "${series_dir}"*/; do
-                        [[ ! -d "$study_dir" ]] && continue
-                        verbose "  Study dir: $(basename "$study_dir")"
-                        convert_series "$study_dir" "$out_dir" "$series_name" "$sub_id" "$suffix"
-                        total=$((total + 1))
-                        found_study=$((found_study + 1))
-                    done
-
-                    if [ "$found_study" -eq 0 ]; then
-                        warn "  No DICOM files or study subdirectory found under: $series_dir"
-                        skipped=$((skipped + 1))
-                    fi
-                fi
-
+            found_study=0
+            for study_dir in "${series_dir}"*/; do
+                if [[ ! -d "$study_dir" ]]; then continue; fi
+                verbose "  Study dir: $(basename "$study_dir")"
+                convert_series "$study_dir" "$out_dir" "$series_name" "$sub_id" "$suffix"
+                total=$((total + 1))
+                found_study=$((found_study + 1))
             done
+
+            if [ "$found_study" -eq 0 ]; then
+                warn "  No study subdirectory found under: $series_dir"
+                skipped=$((skipped + 1))
+            fi
+
         done
     done
 done
