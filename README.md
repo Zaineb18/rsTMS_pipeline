@@ -12,6 +12,7 @@ rsTMS_pipeline/
 │   ├── loading_utils.py    # Functions to locate NIfTI files at each pipeline stage
 │   └── bin/
 │       └── convert_to_bids.sh  # DICOM → NIfTI + BIDS organisation
+│       └── anonymize_subject.sh  # DICOM anonymization (run before conversion)
 ├── preproc/                # Preprocessing scripts
 │   ├── remove_dummy_scans.py
 │   ├── ap_pa.py
@@ -51,14 +52,33 @@ pip install nibabel nilearn h5py json5 numpy scipy pandas matplotlib
 
 | Package | Version | Used by |
 |---|---|---|
-| `nibabel` | any | `remove_dummy_scans.py`, `ap_pa.py`, `sgc_dlpfc_connectivity.py` |
-| `nilearn` | any | `denoise.py`, `sgc_dlpfc_connectivity.py` |
-| `numpy` | any | `h5py2txt.py`, `sgc_dlpfc_connectivity.py`, `create_localite_target.py` |
-| `scipy` | any | `sgc_dlpfc_connectivity.py` |
-| `pandas` | any | `sgc_dlpfc_connectivity.py`, `create_localite_target.py` |
-| `matplotlib` | any | `plotting_utils.py` |
-| `h5py` | any | `h5py2txt.py` |
+| `nibabel` | 5.1.0 | `remove_dummy_scans.py`, `ap_pa.py`, `sgc_dlpfc_connectivity.py` |
+| `nilearn` | 0.10.2 | `denoise.py`, `sgc_dlpfc_connectivity.py` |
+| `numpy` | 1.26.2 | `h5py2txt.py`, `sgc_dlpfc_connectivity.py`, `create_localite_target.py` |
+| `scipy` | 1.11.4 | `sgc_dlpfc_connectivity.py` |
+| `pandas` | 2.1.3 | `sgc_dlpfc_connectivity.py`, `create_localite_target.py` |
+| `matplotlib` | 3.8.2 | `plotting_utils.py` |
+| `h5py` | 3.10.0 | `h5py2txt.py` |
 | `json5` | any | `ap_pa.py` |
+
+---
+
+### dicom-anonymizer — `anonymize_subject.sh`
+
+DICOM anonymization is handled by the custom script `data_loading/bin/anonymize_dicoms.sh`, which wraps the `dicom-anonymizer` command-line tool. It must be run **before** DICOM-to-BIDS conversion.
+
+Install `dicom-anonymizer` via pip:
+
+```bash
+pip install dicom-anonymizer
+```
+
+Verify:
+```bash
+dicom-anonymizer --version
+```
+
+See [DICOM Anonymization](#dicom-anonymization-anonymize_subjectsh) below for usage details.
 
 ---
 
@@ -147,16 +167,11 @@ Verify:
 ```bash
 charm_tms --version
 ```
-
-The `simnibs` Python package is installed automatically alongside SimNIBS and is available in its bundled Python environment. Run targeting scripts using that environment:
-
-```bash
-simnibs_python create_localite_target.py
-```
 ---
 
 ## Full pipeline order
 ```
+0. anonymize_subject.sh          ← anonymize DICOMs in sourcedata (before any conversion)
 1. convert_to_bids.sh            ← convert DICOMs to BIDS NIfTI
 2. remove_dummy_scans.py         ← remove non-steady-state volumes
 3. ap_pa.py                      ← generate AP fieldmaps, set IntendedFor
@@ -172,6 +187,27 @@ simnibs_python create_localite_target.py
 ---
 
 ## Data Loading (`data_loading/`)
+
+### `anonymize_subject.sh`
+
+Anonymizes raw DICOM files **in place** within the `sourcedata/` directory, before any conversion to BIDS. This must be run first to ensure no identifying information is carried forward into the NIfTI files or BIDS metadata.
+
+**Usage:**
+```bash
+bash data_loading/bin/anonymize_subject.sh /path/to/dataset <subject_id>
+
+**What it does:**
+- Looks for DICOM files under `sourcedata/<subject_id>/ses-1/`
+- Handles two DICOM layouts automatically:
+  - **Structure A:** `ses-1/<hash>/<series name>/Unknown Study/MR/`
+  - **Structure B:** `ses-1/<series name>/Unknown Study/MR/`
+- Finds all `MR/` leaf directories (the actual DICOM locations in both layouts)
+- Runs `dicom-anonymizer <dir> <dir>` on each one (anonymizes in place, output path = input path)
+- Prints a summary of all directories found before processing, so you can verify before it runs
+
+**Dependencies:** `dicom-anonymizer` (see [Dependencies](#dicom-anonymizer----anonymize_subjectsh))
+
+---
 
 ### `bin/convert_to_bids.sh`
 

@@ -169,7 +169,7 @@ import pandas as pd
 # ==========================
 
 tissues = {'brainmask': 'brain mask', 'gmmask': 'GM mask'}
-stats = {'pearson':'Person Correlation', 'fisherz':'Fisher Z'}
+stats = {'pearson':'Pearson Correlation', 'fisherz':'Fisher Z'}
 std_coord = (-46, 46, 36)
 for subj in subjects: 
     for ses in sessions: 
