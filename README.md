@@ -12,7 +12,7 @@ rsTMS_pipeline/
 │   ├── loading_utils.py    # Functions to locate NIfTI files at each pipeline stage
 │   └── bin/
 │       └── convert_to_bids.sh  # DICOM → NIfTI + BIDS organisation
-│       └── anonymize_subject.sh  # DICOM anonymization (run before conversion)
+│       └── anonymize_dicoms.sh  # DICOM anonymization (run before conversion)
 ├── preproc/                # Preprocessing scripts
 │   ├── remove_dummy_scans.py
 │   ├── ap_pa.py
@@ -171,7 +171,7 @@ charm_tms --version
 
 ## Full pipeline order
 ```
-0. anonymize_subject.sh          ← anonymize DICOMs in sourcedata (before any conversion)
+0. anonymize_dicoms.sh          ← anonymize DICOMs in sourcedata (before any conversion)
 1. convert_to_bids.sh            ← convert DICOMs to BIDS NIfTI
 2. remove_dummy_scans.py         ← remove non-steady-state volumes
 3. ap_pa.py                      ← generate AP fieldmaps, set IntendedFor
@@ -188,13 +188,13 @@ charm_tms --version
 
 ## Data Loading (`data_loading/`)
 
-### `anonymize_subject.sh`
+### `anonymize_dicoms.sh`
 
 Anonymizes raw DICOM files **in place** within the `sourcedata/` directory, before any conversion to BIDS. This must be run first to ensure no identifying information is carried forward into the NIfTI files or BIDS metadata.
 
 **Usage:**
 ```bash
-bash data_loading/bin/anonymize_subject.sh /path/to/dataset <subject_id>
+bash data_loading/bin/anonymize_dicoms.sh /path/to/dataset <subject_id>
 
 **What it does:**
 - Looks for DICOM files under `sourcedata/<subject_id>/ses-1/`
