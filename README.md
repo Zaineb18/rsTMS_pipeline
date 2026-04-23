@@ -195,7 +195,7 @@ Anonymizes raw DICOM files **in place** within the `sourcedata/` directory, befo
 **Usage:**
 ```bash
 bash data_loading/bin/anonymize_dicoms.sh /path/to/dataset <subject_id>
-
+```
 **What it does:**
 - Looks for DICOM files under `sourcedata/<subject_id>/ses-1/`
 - Handles two DICOM layouts automatically:
@@ -230,6 +230,7 @@ bash data_loading/bin/convert_to_bids.sh /path/to/rTMS_data
 > **dcm2niix version:** Use **v1.0.20211006** specifically. Newer versions (e.g. v1.0.20241211) have been observed to fail to extract readout timing fields (`EffectiveEchoSpacing`, `TotalReadoutTime`) from GE SIGNA Premier data, which causes fMRIPrep to crash during fieldmap estimation. Download the correct binary from the [dcm2niix releases page](https://github.com/rordenlab/dcm2niix/releases/tag/v1.0.20211006) and place it at `/home/team/dcm2niix` (the path used by the script).
 
 **Dependencies:** `dcm2niix` v1.0.20211006
+
 ---
 
 ### `params.py`
