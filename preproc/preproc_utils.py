@@ -10,6 +10,64 @@ from scipy.stats import pearsonr
 from nibabel.affines import apply_affine
 from nilearn import image
 from rsTMS_pipeline.data_loading.params import *
+import json5, json
+
+
+# Fields that were present in the original (pre-anonymisation) JSON sidecars
+# but are missing after DICOM conversion. These are required by fMRIPrep for
+# susceptibility distortion correction (SDC).
+# !! Fill in the 0.0 placeholders with the correct scanner values before
+#    running fMRIPrep !!
+MISSING_FIELDS = {
+    #"PhaseEncodingPolarityGE":       "Flipped",
+    #"MultibandAccelerationFactor":    0,
+    #"ParallelReductionFactorInPlane": 0,
+    "EffectiveEchoSpacing":           0.000312,
+    "TotalReadoutTime":               0.024648,
+    #"PhaseEncodingDirection":         "j",   # replaces PhaseEncodingAxis
+}
+
+def patch_json(json_path, is_ap=False):
+    """
+    Patch a JSON sidecar (BOLD, AP fmap, or PA fmap) with fields that were
+    present in the original acquisition but are missing after DICOM conversion:
+      - Renames 'PhaseEncodingAxis' → 'PhaseEncodingDirection', preserving the value.
+        For the AP fmap (is_ap=True), the value is set to 'j-' regardless of the
+        original, since AP is the opposite phase-encoding direction to PA/BOLD ('j').
+      - Adds any key from MISSING_FIELDS that is absent from the file.
+    Fill in the 0.0 placeholders with the correct scanner values before
+    running fMRIPrep.
+    """
+    with open(json_path, 'r') as f:
+        data = json5.load(f)
+
+    changed = False
+
+    # Rename PhaseEncodingAxis → PhaseEncodingDirection
+    # PA : keep original value ('j')
+    # AP/BOLD:        always set to 'j-' (opposite direction)
+    if "PhaseEncodingAxis" in data or "PhaseEncodingDirection" in data:
+        if "PhaseEncodingAxis" in data:
+            val = data.pop("PhaseEncodingAxis")
+        else:
+            val = data.pop("PhaseEncodingDirection")
+        data["PhaseEncodingDirection"] = "j-" if is_ap else val
+        print(f"  Set PhaseEncodingDirection: {data['PhaseEncodingDirection']}")
+        changed = True
+
+    # Inject missing fields
+    for field, value in MISSING_FIELDS.items():
+        if field not in data:
+            data[field] = value
+            print(f"  Added: {field} = {value}")
+            changed = True
+
+    if changed:
+        with open(json_path, 'w') as f:
+            json.dump(data, f, indent=4)
+        print(f"  Patched: {json_path}")
+    else:
+        print(f"  No changes needed: {json_path}")
 
 def extract_runs(file_list):
     runs = set()

@@ -127,33 +127,145 @@ import pandas as pd
 #     with toward_front in the pos_ydir assignment.
 # ==========================
 
+from params import *
+from logging_utils import *
+from analysis_utils import *
+import os, sys
+from scipy.spatial import cKDTree
+from simnibs import opt_struct, mni2subject_coords
+from simnibs import localite
+import numpy as np
+import pandas as pd
+import simnibs.mesh_tools.mesh_io as mesh_io
+from datetime import datetime
+    
+suffix = datetime.now()
 tms_opt = opt_struct.TMSoptimize()
-optim_orientation = True
+optim_orientation = False
+Occip = False
 toward_occip = (-46,10,36)
 toward_front = (-46,82,36)
+
 for subject in subjects:
     for session in sessions: 
         results_file = os.path.join(RES_PATH, f'sub-{subject}', f'ses-{session}',
                      f'sub-{subject}_ses-{session}_targeting-results.csv')
+        log_file = os.path.join(RES_PATH, f'sub-{subject}', f'ses-{session}',
+                     f'sub-{subject}_ses-{session}_targeting-log_{suffix}.txt')
         df = pd.read_csv(results_file, sep='\t')
         subset_df = df[(df["tissue"] == 'GM mask') & (df["stat"] == 'Fisher Z')]
-        mni_coords = (int(subset_df['mni_x']), int(subset_df['mni_y']), int(subset_df['mni_z']))
+        mni_coords = (int(subset_df['mni_x']), int(subset_df['mni_y']), int(subset_df['mni_z']))       
         tms_opt.subpath = os.path.join(CHARM_PATH, f'sub-{subject}', f'ses-{session}', f'm2m_sub-{subject}_ses-{session}')
         tms_opt.fnamecoil ='/home/zaineb/simnibs/resources/coil_models/Drakaki_BrainStim_2022/MagVenture_Cool-B65.ccd'
         if optim_orientation:
             tms_opt.pathfem = os.path.join(SIMNIBS_PATH,f'sub-{subject}/ses-{session}',
-                                           f'sub-{subject}_ses-{session}_tmsoptim')
+                                           f'sub-{subject}_ses-{session}_tmsoptim_{suffix}')
             os.makedirs(tms_opt.pathfem, exist_ok=True)
             tms_opt.target = mni2subject_coords(mni_coords, tms_opt.subpath)
-            tms_opt.method = 'ADM'
-        else: 
-            tms_opt.pathfem = os.path.join(SIMNIBS_PATH,f'sub-{subject}/ses-{session}',
-                                           f'sub-{subject}_ses-{session}_tmsoptim_toFront')
-            os.makedirs(tms_opt.pathfem, exist_ok=True)
+            tms_opt.method = 'ADM'  
+        else:
+            if Occip:    
+                  tms_opt.pathfem = os.path.join(SIMNIBS_PATH,f'sub-{subject}/ses-{session}',
+                                           f'sub-{subject}_ses-{session}_tmsoptim_toOccip_{suffix}')
+                  orientation = toward_occip
+            else: 
+                  tms_opt.pathfem = os.path.join(SIMNIBS_PATH,f'sub-{subject}/ses-{session}',
+                                           f'sub-{subject}_ses-{session}_tmsoptim_toFront_{suffix}')
+                  orientation = toward_front
+            os.makedirs(tms_opt.pathfem, exist_ok=True)            
+            tms_opt.pos_ydir = mni2subject_coords(orientation, tms_opt.subpath)                        
             tms_opt.target = mni2subject_coords(mni_coords, tms_opt.subpath)
             tms_opt.search_angle = 0
-            tms_opt.pos_ydir = mni2subject_coords(toward_front, tms_opt.subpath)        
-        print('Target:', tms_opt.target, 'End Target')
-        opt_pos=tms_opt.run()
+
+        sys.stdout = Tee(log_file)
+        print(f"\n{'█'*60}")
+        print(f"█  Subject : {subject}   |   Session : {session}")
+        print(f"█  Run at  : {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        print(f"{'█'*60}")
+        # ----------------- Coordinates -----------------
+        mni_arr = np.array(mni_coords, dtype=float)
+        mni_to_subj_displacement = float(np.linalg.norm(tms_opt.target - mni_arr))
+        log_section("Coordinates summary", [
+            {'label': 'MNI (standard space)', 'values': mni_coords, 'unit': 'mm'},
+            {'label': 'Target — subject T1w', 'values': tms_opt.target, 'unit': 'mm'},
+            {'label': 'MNI → subject displacement', 'values': mni_to_subj_displacement, 'unit': 'mm'}
+        ])
+        # ----------------- Surface localisation -----------------       
+        charm_mesh_candidates = [f for f in os.listdir(tms_opt.subpath) if f.endswith('.msh') and not f.startswith('.')]
+        if charm_mesh_candidates:
+            m_charm = mesh_io.read_msh(os.path.join(tms_opt.subpath,
+                                                     charm_mesh_candidates[0]))
+            gm_node_indices  = np.unique(m_charm.elm.node_number_list[m_charm.elm.tag1 == 2] - 1)
+            gm_coords        = m_charm.nodes.node_coord[gm_node_indices]
+            dists_to_gm      = np.linalg.norm(gm_coords - tms_opt.target, axis=1)
+            nearest_gm_coord = gm_coords[np.argmin(dists_to_gm)]
+            nearest_gm_dist  = float(np.min(dists_to_gm))
+            scalp_node_indices  = np.unique(m_charm.elm.node_number_list[m_charm.elm.tag1 == 5] - 1)
+            scalp_coords        = m_charm.nodes.node_coord[scalp_node_indices]
+            dists_to_scalp      = np.linalg.norm(scalp_coords - tms_opt.target, axis=1)
+            nearest_scalp_coord = scalp_coords[np.argmin(dists_to_scalp)]
+            scalp_to_target_mm  = float(np.min(dists_to_scalp))
+            log_section("Surface localisation", [
+                {'label': 'Nearest GM node', 'values': nearest_gm_coord, 'unit': 'mm'},
+                {'label': 'd_GM', 'values': nearest_gm_dist, 'unit': 'mm'},
+                {'label': 'Nearest scalp node', 'values': nearest_scalp_coord, 'unit': 'mm'},
+                {'label': 'd_scalp', 'values': scalp_to_target_mm, 'unit': 'mm'}
+            ])
+        else:
+            print(f"No CHARM mesh found in {tms_opt.subpath} — skipping.")
+            scalp_to_target_mm = float('nan')
+            nearest_gm_coord = nearest_gm_dist = nearest_scalp_coord = float('nan')
+        # ----------------- Coil orientation -----------------
+        if not optim_orientation:
+            orientation_label = "toward occipital" if Occip else "toward frontal"
+            log_section(f"Coil handle direction ({orientation_label})", [
+                {'label': 'pos_ydir — subject T1w', 'values': tms_opt.pos_ydir, 'unit': 'mm'}
+            ])
+        else:
+            subsection("Coil orientation will be optimized")
+        # ----------------- Running TMSoptimize -----------------
+        section("Running TMSoptimize")
+        print(f"  pathfem : {tms_opt.pathfem}")
+        print(f"  method  : {'ADM (full optimisation)' if optim_orientation else 'grid search (fixed orientation)'}")
+        print(f"  coil    : {tms_opt.fnamecoil}")
+        tee = sys.stdout
+        sys.stdout = open(os.devnull, 'w')
+        opt_pos = tms_opt.run()
+        sys.stdout.close()
+        sys.stdout = tee
         fn = os.path.join(tms_opt.pathfem, f'sub-{subject}_ses-{session}_opt_pos')
         localite().write(np.squeeze(opt_pos), fn)
+        # ----------------- E-field calculations -----------------        
+        #msh_files = [f for f in os.listdir(tms_opt.pathfem) if f.endswith('.msh')]
+        msh_files = [f for f in os.listdir(tms_opt.pathfem) 
+             if f.endswith('.msh') and 'TMS_optimize' in f]        
+        if not msh_files:
+            msh_files = [f for f in os.listdir(tms_opt.pathfem) 
+                        if f.endswith('.msh') and not f.startswith(f'sub-{subject}')]
+        print("All .msh in pathfem:", os.listdir(tms_opt.pathfem))
+        print("Selected result mesh:", msh_files)                         
+        if msh_files:
+             m_res = mesh_io.read_msh(os.path.join(tms_opt.pathfem, msh_files[0]))
+             print("Available fields:", list(m_res.field.keys()))
+             efield_full = compute_efield_metrics(m_res, gm_shell=False, shell_mm=1.0)     
+             efield_shell = compute_efield_metrics(m_res, gm_shell=True, shell_mm=1.0)     
+        else:
+             print("No result .msh found in pathfem — E-field metrics unavailable.")
+             e_at_target = float('nan')
+             e_max_gm    = float('nan')
+             e_ratio     = float('nan')
+
+        print_results_summary(opt_pos, tms_opt, mni_coords, nearest_gm_coord, nearest_gm_dist,
+                      nearest_scalp_coord, scalp_to_target_mm, mni_to_subj_displacement,
+                      efield_full, efield_shell, di_dt_per_MSO=1.2, MSO=100, Occip=Occip,
+                      toward_occip=toward_occip, toward_front=toward_front, 
+                      optim_orientation=optim_orientation, fn=fn, subject=subject, session=session)
+        
+        print(f"[log] sub-{subject} / ses-{session} — saved to {log_file}")
+        
+        m_res = mesh_io.read_msh(os.path.join(tms_opt.pathfem, msh_files[0]))
+        vis = m_res.view(visible_tags=[1002],             # GM outer surface — matches GUI default view
+                visible_fields='all')
+        #vis.View[0].CustomMax = 1
+        #vis.View[0].CustomMin = 0
+        vis.show()

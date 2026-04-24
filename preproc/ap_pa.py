@@ -29,29 +29,24 @@ import json5
 #   For each BOLD / PA-fmap pair:
 #     1. Load the trimmed BOLD image (output of remove_dummy_scans.py).
 #     2. Extract volume at index 1 as the AP fieldmap reference.
-#        (A single early volume is used as a static EPI reference for the AP
-#        direction, matching the geometry of the BOLD acquisition.)
 #     3. Save the extracted volume as a new NIfTI file with 'dir-AP' in the
 #        filename (derived by replacing 'dir-PA' in the fmap path).
-#     4. Copy the BOLD JSON sidecar and rename it to match the new AP fmap,
-#        so that the AP image has a valid BIDS JSON sidecar.
+#     4. Copy the BOLD JSON sidecar and rename it to match the new AP fmap.
+#     5. Patch all three JSON sidecars (BOLD, AP, PA) with fields that were
+#        present in the original acquisition but lost during DICOM conversion:
+#          - Renames 'PhaseEncodingAxis' → 'PhaseEncodingDirection', preserving the value
+#          - Injects MISSING_FIELDS (EffectiveEchoSpacing, TotalReadoutTime, etc.)
+#        Fill in the 0.0 placeholders in MISSING_FIELDS with correct scanner
+#        values before running fMRIPrep.
 #
-#   Supports both single-run and multi-run sessions:
-#     - Multi-run: BOLD and fmap files are sorted by run number and paired
-#       by index (run-01 BOLD → run-01 fmap, etc.).
-#     - Single-run: the single BOLD file is paired with the single fmap file.
+#   Supports both single-run and multi-run sessions.
 #
 # --- Loop 2: Set IntendedFor in all fieldmap JSON sidecars ---
 #
 #   For each fmap file (PA and newly created AP):
-#     1. Identify the corresponding BOLD file (by matching run number in
-#        multi-run sessions, or by taking the only BOLD file in single-run
-#        sessions).
-#     2. Compute the BIDS-compliant relative path from the subject directory
-#        (e.g. ses-1/func/sub-XX_ses-1_task-restingstate_bold.nii.gz).
+#     1. Identify the corresponding BOLD file.
+#     2. Compute the BIDS-compliant relative path from the subject directory.
 #     3. Write this path into the 'IntendedFor' field of the fmap JSON sidecar.
-#        This field is required by fMRIPrep and other BIDS-compliant tools to
-#        know which BOLD run each fieldmap is meant to correct.
 #
 # Notes:
 #   - Run remove_dummy_scans.py before this script.
@@ -60,10 +55,11 @@ import json5
 #   - The IntendedFor path is relative to the subject directory, following
 #     the BIDS specification (e.g. ses-1/func/filename.nii.gz).
 # ==========================
- 
+
  
 # -----------------------------------------------------------------------
 # Loop 1: Generate AP fieldmap NIfTI and JSON files from BOLD data
+#         + patch PA fmap JSON with missing fields
 # -----------------------------------------------------------------------
 for subj in subjects: 
     for ses in sessions: 
@@ -87,12 +83,24 @@ for subj in subjects:
             os.makedirs(os.path.dirname(pa_path), exist_ok=True)
             pa_img.to_filename(pa_path)
             
-            jsonb_path = bold_file.replace('nii.gz', 'json')
-            jsonf_path = fmap_file.replace('nii.gz', 'json')
-            pajson_path = jsonf_path.replace('dir-PA', 'dir-AP') 
-            shutil.copy(jsonb_path,pajson_path)
-            print(f"Json file copied and renamed: {jsonb_path} → {pajson_path}")
+            # --- Copy BOLD JSON as AP fmap JSON ---
+            jsonb_path  = bold_file.replace('nii.gz', 'json')
+            jsonpa_path = fmap_file.replace('nii.gz', 'json')
+            jsonap_path = jsonpa_path.replace('dir-PA', 'dir-AP')
+            shutil.copy(jsonb_path, jsonap_path)
+            print(f"  JSON copied and renamed: {jsonb_path} → {jsonap_path}")            
             
+            # --- Patch PA, AP, and BOLD JSON sidecars with missing fields ---
+            # All three use the BOLD JSON as the reference source for missing fields,
+            # since it is the most complete sidecar produced by dcm2niix.
+            # --- Patch BOLD, AP, and PA JSON sidecars ---
+            # --- Patch BOLD, AP, and PA JSON sidecars ---
+            for label, json_path, is_ap in [("BOLD",    jsonb_path,  True),
+                                               ("AP fmap", jsonap_path, True),
+                                               ("PA fmap", jsonpa_path, False)]:
+                print(f"  Patching {label} JSON: {json_path}")
+                patch_json(json_path, is_ap=is_ap)
+                                            
 # -----------------------------------------------------------------------
 # Loop 2: Set IntendedFor field in all fieldmap JSON sidecars
 # -----------------------------------------------------------------------
@@ -140,3 +148,6 @@ for subj in subjects:
             fmap_data['IntendedFor'] = [matching_func]
             with open(fmap_json, 'w') as f:
                 json.dump(fmap_data, f, indent=4) 
+                
+                
+                

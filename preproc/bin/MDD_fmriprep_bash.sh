@@ -35,7 +35,7 @@ singularity run --cleanenv \
     --fs-license-file /freesurfer-license.txt \
     --output-spaces func anat MNI152NLin2009cAsym fsnative \
     --dummy-scans 0 \
-    --participant-label "${SUBJECTS_TO_RUN[@]}"
+    --participant-label "${SUBJECTS_TO_RUN[@]}" 
 
 rm -rf "${TMPDIR}"/*
 

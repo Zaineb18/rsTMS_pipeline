@@ -175,7 +175,6 @@ for subj in subjects:
     for ses in sessions: 
         print('SUBJECT:', subj, '- SESSION:', ses)
         FUNC_PATH, MASK_PATH, CONFOUNDS_PATH, ANAT_PATH, GM_PATH = load_fmriprepdata(FMRIPREP_PATH, subj, ses, space)
-        
         bold_files = FUNC_PATH
         mask_files = MASK_PATH
         confounds_files = CONFOUNDS_PATH
