@@ -1,12 +1,15 @@
 from rsTMS_pipeline.data_loading.params import *
-from rsTMS_pipeline.data_loading.loading_utils import *
-import os
+from rsTMS_pipeline.analysis.logging_utils import *
+from rsTMS_pipeline.analysis.analysis_utils import *
+import os, sys
+from scipy.spatial import cKDTree
 from simnibs import opt_struct, mni2subject_coords
 from simnibs import localite
-import simnibs.msh.mesh_io as mesh_io
-from simnibs.utils.simnibs_utils import get_field_at_target
 import numpy as np
 import pandas as pd
+import simnibs.mesh_tools.mesh_io as mesh_io
+from datetime import datetime
+
 
 # ==========================
 # SimNIBS TMS Coil Position Optimisation for Individualized DLPFC Targeting
@@ -127,18 +130,6 @@ import pandas as pd
 #     with toward_front in the pos_ydir assignment.
 # ==========================
 
-from params import *
-from logging_utils import *
-from analysis_utils import *
-import os, sys
-from scipy.spatial import cKDTree
-from simnibs import opt_struct, mni2subject_coords
-from simnibs import localite
-import numpy as np
-import pandas as pd
-import simnibs.mesh_tools.mesh_io as mesh_io
-from datetime import datetime
-    
 suffix = datetime.now()
 tms_opt = opt_struct.TMSoptimize()
 optim_orientation = False

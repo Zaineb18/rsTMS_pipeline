@@ -1,7 +1,7 @@
 #!/bin/bash
-RAWDATA="/home/zamor/Documents/rTMS_DomenechAmor_2025/DomenechAmor_MDDrsTMS_2026/anonym_data/rawdata"
-DERIVATIVES="/home/zamor/Documents/rTMS_DomenechAmor_2025/DomenechAmor_MDDrsTMS_2026/anonym_data/derivatives/fmriprep"
-TMPDIR="/home/zamor/Documents/rTMS_DomenechAmor_2025/DomenechAmor_MDDrsTMS_2026/tmp"
+RAWDATA="/home/team/rsTMS_dataset/anonym_data/rawdata"
+DERIVATIVES="/home/team/rsTMS_dataset/anonym_data/derivatives/fmriprep"
+TMPDIR="/home/team/rsTMS_dataset/tmp"
 
 # Build list of subjects without derivatives
 SUBJECTS_TO_RUN=()
@@ -38,38 +38,3 @@ singularity run --cleanenv \
     --participant-label "${SUBJECTS_TO_RUN[@]}" 
 
 rm -rf "${TMPDIR}"/*
-
-
-
-
-#!/bin/bash
-
-#WORKDIR="/home/zamor/Documents/rTMS_DomenechAmor_2025/DomenechAmor_MDDrsTMS_2026/anonym_data"
-
-#for sub in BERoum
-#do
-#    for ses in 1
-#    do
-#        SUBID="sub-${sub}"
-#        SESID="ses-${ses}"
-#        WORKSUBDIR="${WORKDIR}/${SUBID}/${SESID}"
-
-        #mkdir -p "$WORKSUBDIR"
-
-#        singularity run --cleanenv \
-#            --bind /home/team/freesurfer/7.4.1/license.txt:/freesurfer-license.txt:ro \
-#            --bind /home/zamor/Documents/rTMS_DomenechAmor_2025/DomenechAmor_MDDrsTMS_2026/anonym_data/rawdata:/rawdata:ro \
-#            --bind /home/zamor/Documents/rTMS_DomenechAmor_2025/DomenechAmor_MDDrsTMS_2026/anonym_data/derivatives/fmriprep:/out:rw \
-#            --bind /home/zamor/Documents/rTMS_DomenechAmor_2025/DomenechAmor_MDDrsTMS_2026/tmp:/tmpdir:rw \
-#            /home/team/FMRIPREP/fmriprep-23.2.1.simg /rawdata /out participant \
-#            --skip_bids_validation \
-#            --work-dir /tmpdir \
-#            --fs-license-file /freesurfer-license.txt \
-#            --output-spaces func anat MNI152NLin2009cAsym fsnative \
-#            --dummy-scans 0 \
-#            --skip-existing
-
-#        rm -rf /home/zamor/Documents/rTMS_DomenechAmor_2025/DomenechAmor_MDDrsTMS_2026/tmp/*
-
-#    done
-#done

@@ -1,13 +1,13 @@
 # CHARM directory to run in ==> Output
-charm_dir="/home/zamor/Documents/rTMS_DomenechAmor_2025/DomenechAmor_MDDrsTMS_2026/anonym_data/derivatives/charmtms"
+charm_dir="/home/team/rsTMS_dataset/anonym_data/derivatives/charmtms"
 # Parent directory to search
-parent_dir="/home/zamor/Documents/rTMS_DomenechAmor_2025/DomenechAmor_MDDrsTMS_2026/anonym_data/derivatives/fmriprep"
+parent_dir="/home/team/rsTMS_dataset/anonym_data/derivatives/fmriprep"
 # Freesurfer directory
 fs_dir="$parent_dir/sourcedata/freesurfer"
 # Regular expression pattern for files
 file_pattern="*desc-preproc_T1w.nii.gz"
 # Directory where I stored the affine transformations
-transform_dir="/home/zamor/Documents/rTMS_DomenechAmor_2025/DomenechAmor_MDDrsTMS_2026/anonym_data/derivatives/h5_transforms/"
+transform_dir="/home/team/rsTMS_dataset/anonym_data/derivatives/h5_transforms/"
 # Regular expression pattern for ANTs MNI to T1w transform
 transform_pattern="_from-MNI152NLin2009cAsym_to-T1w_mode-image_xfm.txt"
 # File to store names of directories where the file was not found

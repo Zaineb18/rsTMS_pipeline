@@ -1,5 +1,5 @@
 # logging_utils.py
-from params import *
+from rsTMS_pipeline.data_loading.params import *
 import os, sys
 import numpy as np
 import pandas as pd
