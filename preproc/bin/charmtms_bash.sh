@@ -1,13 +1,13 @@
 # CHARM directory to run in ==> Output
-charm_dir="/home/team/rsTMS_dataset/anonym_data/derivatives/charmtms"
+charm_dir="/home/zamor/Documents/rTMS_DomenechAmor_2025/DomenechAmor_HalluStim_2026/derivatives/charmtms"
 # Parent directory to search
-parent_dir="/home/team/rsTMS_dataset/anonym_data/derivatives/fmriprep"
+parent_dir="/home/zamor/Documents/rTMS_DomenechAmor_2025/DomenechAmor_HalluStim_2026/derivatives/fmriprep"
 # Freesurfer directory
 fs_dir="$parent_dir/sourcedata/freesurfer"
 # Regular expression pattern for files
 file_pattern="*desc-preproc_T1w.nii.gz"
 # Directory where I stored the affine transformations
-transform_dir="/home/team/rsTMS_dataset/anonym_data/derivatives/h5_transforms/"
+transform_dir="/home/zamor/Documents/rTMS_DomenechAmor_2025/DomenechAmor_HalluStim_2026/derivatives/h5_transforms/"
 # Regular expression pattern for ANTs MNI to T1w transform
 transform_pattern="_from-MNI152NLin2009cAsym_to-T1w_mode-image_xfm.txt"
 # File to store names of directories where the file was not found
@@ -32,7 +32,7 @@ for dir in $(find "$parent_dir" -mindepth 2 -maxdepth 2 -type d -name "ses-*"); 
         sub=$(basename "$(dirname "$dir")")
         ses=$(basename "$dir")
         dir_name="${sub}_${ses}"
-        out_dir="$charm_dir/$sub/$ses"
+        out_dir="$charm_dir/$sub/$ses":q
         mkdir -p "$out_dir"
 
         echo "T1w file found: checking if head modelling was fully performed for $dir_name"
@@ -75,3 +75,4 @@ for dir in $(find "$parent_dir" -mindepth 2 -maxdepth 2 -type d -name "ses-*"); 
     fi
 done
 
+echo "CHARMTMS finished" | mail -s "CHARMTMS finished" m.amagat@ghu-paris.fr fn.maruottolo@ghu-paris.fr zaineb.amor@ghu-paris.fr

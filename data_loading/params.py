@@ -15,10 +15,10 @@ import numpy as np
 proto="MDD"
 
 if proto=="SCZ":
-    DATA_DIR = "/home/zamor/Documents/MainStim"
+    DATA_DIR = "/home/zamor/Documents/rTMS_DomenechAmor_2025/DomenechAmor_HalluStim_2026/"
     space = "MNI152NLin2009cAsym"
-    subjects = [8]
-    sessions = [1]
+    subjects = ['78413DA']#'78410BA']#, '78413DA']
+    sessions = [2]#1]#,2]
     RAW_PATH = os.path.join(DATA_DIR, 'rawdata')
     SOURCE_PATH = os.path.join(DATA_DIR, 'sourcedata')    
     FMRIPREP_PATH =os.path.join(DATA_DIR, 'derivatives', 'fmriprep')
@@ -29,7 +29,7 @@ if proto=="SCZ":
 elif proto=="MDD":
     DATA_DIR = "/home/team/rsTMS_dataset/anonym_data"
     space = "MNI152NLin2009cAsym"
-    subjects = ['RASger']
+    subjects = ['BOUrom']
     sessions = [1]
     RAW_PATH = os.path.join(DATA_DIR, 'rawdata')
     SOURCE_PATH = os.path.join(DATA_DIR, 'sourcedata')

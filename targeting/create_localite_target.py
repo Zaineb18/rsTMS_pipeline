@@ -134,6 +134,7 @@ suffix = datetime.now()
 tms_opt = opt_struct.TMSoptimize()
 optim_orientation = False
 Occip = False
+Top = True
 toward_occip = (-46,10,36)
 toward_front = (-46,82,36)
 
@@ -159,6 +160,11 @@ for subject in subjects:
                   tms_opt.pathfem = os.path.join(SIMNIBS_PATH,f'sub-{subject}/ses-{session}',
                                            f'sub-{subject}_ses-{session}_tmsoptim_toOccip_{suffix}')
                   orientation = toward_occip
+            elif Top:
+                  tms_opt.pathfem = os.path.join(SIMNIBS_PATH,f'sub-{subject}/ses-{session}',
+                                           f'sub-{subject}_ses-{session}_tmsoptim_toTop_{suffix}')
+                  toward_vertex = (mni_coords[0], mni_coords[1], mni_coords[2] - 45)
+                  orientation = toward_vertex  
             else: 
                   tms_opt.pathfem = os.path.join(SIMNIBS_PATH,f'sub-{subject}/ses-{session}',
                                            f'sub-{subject}_ses-{session}_tmsoptim_toFront_{suffix}')

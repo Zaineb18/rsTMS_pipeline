@@ -37,4 +37,6 @@ singularity run --cleanenv \
     --dummy-scans 0 \
     --participant-label "${SUBJECTS_TO_RUN[@]}" 
 
+echo "fMRIPrep finished for: ${SUBJECTS_TO_RUN[*]}" | mail -s "fMRIPrep finished" m.amagat@ghu-paris.fr fn.maruottolo@ghu-paris.fr zaineb.amor@ghu-paris.fr
+
 rm -rf "${TMPDIR}"/*

@@ -97,9 +97,11 @@ def _min_target_gm(z_img, roi_img,gmpath, fallback_coord=(-46, 46, 36)):
     masked_z_img = math_img("z_img * (roi_img > 0)", z_img=z_img, roi_img=roi_img)
     GM_thresh = gm_mask(gmpath, masked_z_img)
     final_projected_img = math_img("masked_z_img * GM_thresh", masked_z_img=masked_z_img, GM_thresh=GM_thresh)
+    
     gm_data = GM_thresh.get_fdata().squeeze() > 0
     final_projected_data[~gm_data] = np.nan
     final_projected_data[~dlpfc_mask_data] = np.nan    
+    
     dlpfc_roi_resampled = resample_to_img(roi_img, final_projected_img, interpolation='nearest')
     dlpfc_mask_data = dlpfc_roi_resampled.get_fdata() > 0 
     final_projected_data = final_projected_img.get_fdata()
@@ -121,11 +123,11 @@ def min_target_gm(z_img, roi_img, gmpath, fallback_coord=(-46, 46, 36)):
     masked_z_img = math_img("z_img * (roi_img > 0)", z_img=z_img, roi_img=roi_img)
     GM_thresh = gm_mask(gmpath, masked_z_img)
     final_projected_img = math_img("masked_z_img * GM_thresh", masked_z_img=masked_z_img, GM_thresh=GM_thresh)
-
+    
     dlpfc_roi_resampled = resample_to_img(roi_img, final_projected_img, interpolation='nearest')
     dlpfc_mask_data = dlpfc_roi_resampled.get_fdata() > 0
     gm_data = GM_thresh.get_fdata().squeeze() > 0
-
+    
     final_projected_data = final_projected_img.get_fdata()   # ← assign FIRST
     final_projected_data[~gm_data] = np.nan                  # ← then mask
     final_projected_data[~dlpfc_mask_data] = np.nan
