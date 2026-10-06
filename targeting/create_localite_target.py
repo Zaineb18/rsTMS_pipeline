@@ -134,7 +134,7 @@ suffix = datetime.now()
 tms_opt = opt_struct.TMSoptimize()
 optim_orientation = False
 Occip = False
-Top = True
+Top = False
 toward_occip = (-46,10,36)
 toward_front = (-46,82,36)
 
@@ -146,9 +146,22 @@ for subject in subjects:
                      f'sub-{subject}_ses-{session}_targeting-log_{suffix}.txt')
         df = pd.read_csv(results_file, sep='\t')
         subset_df = df[(df["tissue"] == 'GM mask') & (df["stat"] == 'Fisher Z')]
-        mni_coords = (int(subset_df['mni_x']), int(subset_df['mni_y']), int(subset_df['mni_z']))       
+        print('HEEEEEERE',subset_df)
+        #mni_coords = (int(subset_df['mni_x']), int(subset_df['mni_y']), int(subset_df['mni_z']))       
+
+        if len(subset_df) != 1:
+            raise ValueError(
+                f"Expected exactly one row, found {len(subset_df)}"
+            )
+        row = subset_df.iloc[0]
+        mni_coords = (
+        int(row['mni_x']),
+        int(row['mni_y']),
+        int(row['mni_z'])
+        )
+        print("MNI coordinates:", mni_coords)
         tms_opt.subpath = os.path.join(CHARM_PATH, f'sub-{subject}', f'ses-{session}', f'm2m_sub-{subject}_ses-{session}')
-        tms_opt.fnamecoil ='/home/zaineb/simnibs/resources/coil_models/Drakaki_BrainStim_2022/MagVenture_Cool-B65.ccd'
+        tms_opt.fnamecoil ='/home/team/simnibs/resources/coil_models/Drakaki_BrainStim_2022/MagVenture_Cool-B65.ccd'
         if optim_orientation:
             tms_opt.pathfem = os.path.join(SIMNIBS_PATH,f'sub-{subject}/ses-{session}',
                                            f'sub-{subject}_ses-{session}_tmsoptim_{suffix}')
@@ -160,15 +173,17 @@ for subject in subjects:
                   tms_opt.pathfem = os.path.join(SIMNIBS_PATH,f'sub-{subject}/ses-{session}',
                                            f'sub-{subject}_ses-{session}_tmsoptim_toOccip_{suffix}')
                   orientation = toward_occip
+                  
             elif Top:
                   tms_opt.pathfem = os.path.join(SIMNIBS_PATH,f'sub-{subject}/ses-{session}',
                                            f'sub-{subject}_ses-{session}_tmsoptim_toTop_{suffix}')
                   toward_vertex = (mni_coords[0], mni_coords[1], mni_coords[2] - 45)
-                  orientation = toward_vertex  
+                  orientation = toward_vertex         
             else: 
                   tms_opt.pathfem = os.path.join(SIMNIBS_PATH,f'sub-{subject}/ses-{session}',
                                            f'sub-{subject}_ses-{session}_tmsoptim_toFront_{suffix}')
                   orientation = toward_front
+
             os.makedirs(tms_opt.pathfem, exist_ok=True)            
             tms_opt.pos_ydir = mni2subject_coords(orientation, tms_opt.subpath)                        
             tms_opt.target = mni2subject_coords(mni_coords, tms_opt.subpath)
